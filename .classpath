@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+    <!-- Source folder -->
+    <classpathentry kind="src" path="src"/>
+
+    <!-- JAR Dependencies -->
+    <classpathentry kind="lib" path="lib/socket.io-client-2.1.1.jar"/>
+    <classpathentry kind="lib" path="lib/engine.io-client-2.1.0.jar"/>
+    <classpathentry kind="lib" path="lib/json-20250107.jar"/> 
+	<classpathentry kind="lib" path="lib/okhttp-3.12.12.jar"/>
+	<classpathentry kind="lib" path="lib/okio-1.14.0.jar"/> 	
+
+    <!-- Output folder -->
+    <classpathentry kind="output" path="build"/>
+</classpath>

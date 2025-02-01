@@ -1,0 +1,87 @@
+<project name="FiskPayClient" default="jar" basedir=".">
+
+    <!-- Directories -->
+    <property name="src.dir" value="src" />
+    <property name="build.dir" value="build" />
+    <property name="dist.dir" value="dist" />
+    <property name="lib.dir" value="lib" />
+
+    <!-- Setup classpath from lib -->
+    <path id="classpath">
+        <fileset dir="${lib.dir}">
+			<include name="*.jar" />
+        </fileset>
+    </path>
+
+    <!-- Convert classpath to manifest-friendly format -->
+    <pathconvert property="manifest.lib" pathsep=" ">
+        <path refid="classpath" />
+        <mapper>
+            <chainedmapper>
+                <flattenmapper />
+                <globmapper from="*.jar" to="../lib/*.jar" />
+            </chainedmapper>
+        </mapper>
+    </pathconvert>
+
+    <!-- Clean task -->
+    <target name="clean">
+        <delete dir="${build.dir}" />
+        <delete dir="${dist.dir}" />
+    </target>
+
+    <!-- Initialize directories -->
+    <target name="init" depends="clean">
+        <mkdir dir="${build.dir}" />
+        <mkdir dir="${dist.dir}" />
+    </target>
+
+    <!-- Compile the source code -->
+    <target name="compile" depends="init">
+        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="classpath" debug="true" encoding="UTF-8" includeantruntime="false"/>
+    </target>
+
+    <!-- Create source JAR -->
+    <target name="source-jar" depends="init">
+        <jar destfile="${dist.dir}/Connector-sources.jar" basedir="${src.dir}">
+            <manifest>
+                <attribute name="Main-Class" value="com.fiskpay.l2j.Connector" />
+            </manifest>
+        </jar>
+    </target>
+
+    <!-- Create runnable JAR -->
+    <target name="jar" depends="compile,source-jar">
+        <jar destfile="${dist.dir}/Connector.jar" basedir="${build.dir}">
+            <manifest>
+                <attribute name="Main-Class" value="com.fiskpay.l2j.Connector" />
+                <attribute name="Class-Path" value="${manifest.lib}" />
+            </manifest>
+        </jar>
+    </target>
+
+
+
+    <!-- Create runnable JAR with all dependencies included-->
+    <target name="fat-jar" depends="compile,source-jar">
+        <jar destfile="${dist.dir}/Connector.jar">
+            <manifest>
+                <attribute name="Main-Class" value="com.fiskpay.l2j.Connector" />
+                <attribute name="Class-Path" value="${manifest.lib}" />
+            </manifest>
+            <fileset dir="${build.dir}" />
+            <zipgroupfileset dir="${lib.dir}" includes="*.jar" />
+        </jar>
+    </target>
+
+    <!-- Run the application -->
+    <target name="run" depends="jar">
+        <java jar="${dist.dir}/Connector.jar" fork="true" />
+    </target>
+
+    <!-- Cleanup task -->
+    <target name="cleanup" depends="run">
+        <delete dir="${build.dir}" />
+    </target>
+
+</project>
