@@ -1,0 +1,22 @@
+--- GameServerPacketHandler.java
++++ GameServerPacketHandler.java
+@@ -16,6 +16,7 @@
+ import org.l2jmobius.loginserver.network.gameserverpackets.BlowFishKey;
+ import org.l2jmobius.loginserver.network.gameserverpackets.ChangeAccessLevel;
+ import org.l2jmobius.loginserver.network.gameserverpackets.ChangePassword;
++import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceive;
+ import org.l2jmobius.loginserver.network.gameserverpackets.GameServerAuth;
+ import org.l2jmobius.loginserver.network.gameserverpackets.PlayerAuthRequest;
+ import org.l2jmobius.loginserver.network.gameserverpackets.PlayerInGame;
+@@ -104,6 +105,11 @@
+ 					{
+ 						new ChangePassword(data);
+ 						break;
++					}
++					case 0x0C:
++					{
++						new FiskPayResponseReceive(data);
++						break;
+ 					}
+ 					default:
+ 					{

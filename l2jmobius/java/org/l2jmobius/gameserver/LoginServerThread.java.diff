@@ -1,0 +1,41 @@
+--- LoginServerThread.java
++++ LoginServerThread.java
+@@ -55,6 +55,7 @@
+ import org.l2jmobius.gameserver.network.loginserverpackets.game.ChangeAccessLevel;
+ import org.l2jmobius.gameserver.network.loginserverpackets.game.ChangePassword;
++import org.l2jmobius.gameserver.network.loginserverpackets.game.FiskPayResponseSend;
+ import org.l2jmobius.gameserver.network.loginserverpackets.game.PlayerAuthRequest;
+ import org.l2jmobius.gameserver.network.loginserverpackets.game.PlayerInGame;
+ import org.l2jmobius.gameserver.network.loginserverpackets.game.PlayerLogout;
+@@ -66,6 +67,7 @@
+ import org.l2jmobius.gameserver.network.loginserverpackets.game.TempBan;
+ import org.l2jmobius.gameserver.network.loginserverpackets.login.AuthResponse;
+ import org.l2jmobius.gameserver.network.loginserverpackets.login.ChangePasswordResponse;
++import org.l2jmobius.gameserver.network.loginserverpackets.login.FiskPayRequestReceive;
+ import org.l2jmobius.gameserver.network.loginserverpackets.login.InitLS;
+ import org.l2jmobius.gameserver.network.loginserverpackets.login.KickPlayer;
+ import org.l2jmobius.gameserver.network.loginserverpackets.login.LoginServerFail;
+@@ -322,6 +324,11 @@
+ 							new ChangePasswordResponse(incoming);
+ 							break;
+ 						}
++						case 0x07:
++						{
++							new FiskPayRequestReceive(incoming);
++							break;
++						}
+ 					}
+ 				}
+ 			}
+@@ -594,6 +601,11 @@
+ 	{
+ 		sendPacket(new ChangePassword(accountName, charName, oldpass, newpass));
+ 	}
++
++	public void sendFiskPayResponse(int requestId, String response)
++	{
++		sendPacket(new FiskPayResponseSend(requestId, response));
++	}
+ 	
+ 	public int getServerStatus()
+ 	{

@@ -1,6 +1,7 @@
 package com.fiskpay.l2j;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -106,17 +107,17 @@ public class Connector {
                         future.complete("Signed in successfully");
                     }
                 } catch (Exception e) {
-                    future.completeExceptionally(e);
+                    if (!future.isDone()) {
+                        future.completeExceptionally(e);
+                    }
                 }
             }
         });
 
-        return future;
-
+        return future.completeOnTimeout("Login request timed out", 5, TimeUnit.SECONDS);
     }
 
     public void onlineServers(JSONArray onlineServers) {
-
         _socket.emit("onlineServers", onlineServers);
     }
 }

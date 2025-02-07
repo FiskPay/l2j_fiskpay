@@ -1,0 +1,21 @@
+--- GameServerThread.java
++++ GameServerThread.java
+@@ -20,6 +20,7 @@
+ import org.l2jmobius.loginserver.network.ScrambledKeyPair;
+ import org.l2jmobius.loginserver.network.loginserverpackets.ChangePasswordResponse;
++import org.l2jmobius.loginserver.network.loginserverpackets.FiskPayRequestSend;
+ import org.l2jmobius.loginserver.network.loginserverpackets.InitLS;
+ import org.l2jmobius.loginserver.network.loginserverpackets.KickPlayer;
+ import org.l2jmobius.loginserver.network.loginserverpackets.LoginServerFail;
+@@ -270,6 +271,11 @@
+ 	{
+ 		sendPacket(new ChangePasswordResponse(characterName, msgToSend));
+ 	}
++
++	public void sendFiskPayRequest(int requestId, String request)
++	{
++		sendPacket(new FiskPayRequestSend(requestId, request));
++	}
+ 	
+ 	/**
+ 	 * @param hosts The gameHost to set.

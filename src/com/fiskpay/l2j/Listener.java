@@ -9,7 +9,7 @@ public interface Listener {
     void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character,
             String refund);
 
-    <T> void onRequest(JSONObject requestObject, Callback cb);
+    void onRequest(JSONObject requestObject, Callback cb);
 
     void onConnect();
 

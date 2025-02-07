@@ -10,6 +10,7 @@
     <path id="classpath">
         <fileset dir="${lib.dir}">
 			<include name="*.jar" />
+            <exclude name="**/*-sources.jar" />
         </fileset>
     </path>
 
