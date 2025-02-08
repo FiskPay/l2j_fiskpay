@@ -6,7 +6,6 @@ import com.fiskpay.l2j.Listener;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 import org.l2jmobius.loginserver.blockchain.LSProcessor;
 
 import java.util.Calendar;
@@ -22,7 +21,7 @@ public class FiskPayListener implements Listener
     private static final String WALLET = "0x33a6657b336A2bef47769BCdcAdFCED8E78246AC";
     private static final String PASSWORD = "aa";
     
-    private static volatile JSONArray onlineServers = new JSONArray();
+    private static volatile JSONArray _onlineServers = new JSONArray();
     
     private Connector _connector;
     
@@ -99,12 +98,13 @@ public class FiskPayListener implements Listener
         LOGGER.info(getClass().getSimpleName() + ": Connection to FiskPay established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in....");
         
-        _connector.login(SYMBOL, WALLET, PASSWORD, onlineServers).thenAccept(result ->
+        _connector.login(SYMBOL, WALLET, PASSWORD, _onlineServers).thenAccept(result ->
         {
             LOGGER.info(getClass().getSimpleName() + ": " + result);
         }).exceptionally(e ->
         {
-            LOGGER.warning(getClass().getSimpleName() + ": Error during sign in: " + e.getMessage());
+            LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
+            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
             return null;
         });
     }
@@ -120,6 +120,12 @@ public class FiskPayListener implements Listener
     {
         LOGGER.warning(getClass().getSimpleName() + ": Connector error");
         LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+    }
+    
+    public void updateServers(JSONArray onlineServers)
+    {
+        _onlineServers = onlineServers;
+        _connector.onlineServers(onlineServers);
     }
     
     public static FiskPayListener getInstance()

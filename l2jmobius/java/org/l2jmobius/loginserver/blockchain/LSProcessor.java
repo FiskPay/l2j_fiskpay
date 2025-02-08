@@ -16,17 +16,92 @@ public class LSProcessor
         {
             case "getAccs":
             {
-                if (data.has("walletAddress"))
+                if (!data.has("walletAddress"))
                 {
-                    if (data.get("walletAddress") instanceof String)
-                    {
-                        return LSMethods.getAccounts(data.getString("walletAddress")); // Get accounts from Login Server database
-                    }
-                    
+                    return new JSONObject().put("fail", "walletAddress undefined");
+                }
+                
+                if (!(data.get("walletAddress") instanceof String))
+                {
                     return new JSONObject().put("fail", "walletAddress not a String");
                 }
                 
-                return new JSONObject().put("fail", "walletAddress undefined");
+                return LSMethods.getAccounts(data.getString("walletAddress")); // Get accounts from Login Server
+            }
+            case "getClientBal":
+            {
+                // to do
+                // return LSMethods.getClientBalance(); // Get total balance from all Game Servers
+            }
+            case "addAcc":
+            {
+                if (!data.has("username"))
+                {
+                    return new JSONObject().put("fail", "username undefined");
+                }
+                
+                if (!data.has("password"))
+                {
+                    return new JSONObject().put("fail", "password undefined");
+                }
+                
+                if (!data.has("walletAddress"))
+                {
+                    return new JSONObject().put("fail", "walletAddress undefined");
+                }
+                
+                if (!(data.get("username") instanceof String))
+                {
+                    return new JSONObject().put("fail", "username not a String");
+                }
+                
+                if (!(data.get("password") instanceof String))
+                {
+                    return new JSONObject().put("fail", "password not a String");
+                }
+                
+                if (!(data.get("walletAddress") instanceof String))
+                {
+                    return new JSONObject().put("fail", "walletAddress not a String");
+                }
+                
+                // to do
+                // return LSMethods.addAccount(); // Links the account to the wallet address
+            }
+            case "removeAcc":
+            {
+                if (!data.has("username"))
+                {
+                    return new JSONObject().put("fail", "username undefined");
+                }
+                
+                if (!data.has("password"))
+                {
+                    return new JSONObject().put("fail", "password undefined");
+                }
+                
+                if (!data.has("walletAddress"))
+                {
+                    return new JSONObject().put("fail", "walletAddress undefined");
+                }
+                
+                if (!(data.get("username") instanceof String))
+                {
+                    return new JSONObject().put("fail", "username not a String");
+                }
+                
+                if (!(data.get("password") instanceof String))
+                {
+                    return new JSONObject().put("fail", "password not a String");
+                }
+                
+                if (!(data.get("walletAddress") instanceof String))
+                {
+                    return new JSONObject().put("fail", "walletAddress not a String");
+                }
+                
+                // to do
+                // return LSMethods.removeAccount(); // Unlinks the account from the wallet address
             }
             default:
             {
@@ -42,19 +117,91 @@ public class LSProcessor
         
         switch (subject)
         {
-            case "getChars": // Forward request to game server
+            case "getChars":
             {
-                if (data.has("username"))
+                if (!data.has("username"))
                 {
-                    if (data.get("username") instanceof String)
-                    {
-                        return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a request to Game Server, and return the result
-                    }
-                    
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "username undefined"));
+                }
+                
+                if (!(data.get("username") instanceof String))
+                {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "username not a String"));
                 }
                 
-                return CompletableFuture.completedFuture(new JSONObject().put("fail", "username undefined"));
+                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "getChars" request to Game Server, and return the result
+            }
+            case "getCharBal":
+            {
+                if (!data.has("character"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character undefined"));
+                }
+                
+                if (!(data.get("character") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
+                }
+                
+                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "getCharBal" request to Game Server, and return the result
+            }
+            case "isOffline":
+            {
+                if (!data.has("character"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character undefined"));
+                }
+                
+                if (!(data.get("character") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
+                }
+                
+                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "isOffline" request to Game Server, and return the result
+            }
+            case "doWithdraw":
+            {
+                if (!data.has("address"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "address undefined"));
+                }
+
+                if (!data.has("amount"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "amount undefined"));
+                }
+
+                if (!data.has("character"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character undefined"));
+                }
+
+                if (!data.has("refund"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "refund undefined"));
+                }
+                
+                if (!(data.get("address") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "address not a String"));
+                }
+
+                if (!(data.get("amount") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "amount not a String"));
+                }
+
+                if (!(data.get("character") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
+                }
+
+                if (!(data.get("refund") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "refund not a String"));
+                }
+                
+                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "doWithdraw" request to Game Server, and return the result
             }
             default:
             {

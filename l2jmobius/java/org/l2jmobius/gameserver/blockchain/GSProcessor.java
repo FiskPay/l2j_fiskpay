@@ -15,7 +15,22 @@ public class GSProcessor
         
         switch (subject)
         {
-            
+            case "getChars":
+            {
+                
+            }
+            case "getCharBal":
+            {
+                
+            }
+            case "isOffline":
+            {
+                
+            }
+            case "doWithdraw":
+            {
+                
+            }
         }
         
         return responseObject.toString();
