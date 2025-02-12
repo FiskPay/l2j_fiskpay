@@ -13,6 +13,6 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `hop2` char(15) DEFAULT NULL,
   `hop3` char(15) DEFAULT NULL,
   `hop4` char(15) DEFAULT NULL,
-  `wallet_address` varchar(42) DEFAULT 'not linked',
+  `wallet_address` varchar(42) NOT NULL DEFAULT 'not linked',
   PRIMARY KEY (`login`)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

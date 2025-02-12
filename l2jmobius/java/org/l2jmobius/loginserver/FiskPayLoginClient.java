@@ -1,4 +1,4 @@
-// Login Server: FiskPayListener.java
+// Login Server: FiskPayLoginClient.java
 package org.l2jmobius.loginserver;
 
 import com.fiskpay.l2j.Connector;
@@ -6,15 +6,16 @@ import com.fiskpay.l2j.Listener;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import org.l2jmobius.loginserver.blockchain.LSProcessor;
 
 import java.util.Calendar;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-public class FiskPayListener implements Listener
+public class FiskPayLoginClient implements Listener
 {
-    private static final Logger LOGGER = Logger.getLogger(FiskPayListener.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(FiskPayLoginClient.class.getName());
     private static final Logger BLOCKCHAIN_LOGGER = Logger.getLogger("blockchain");
     
     private static final String SYMBOL = "TOS";
@@ -80,7 +81,7 @@ public class FiskPayListener implements Listener
             {
                 cb.resolve(LSProcessor.processLSRequest(requestObject)); // Proccess the request and send it to the FiskPay server
             }
-            else if (Pattern.matches("(^([1-9]|[1-9][0-9]|1[01][0-9]|12[0-7])$)", serverId)) // Forward the request to the appropriate Game Server. When a response is received from the Game Server, Login Server will handle it
+            else if (Pattern.matches("^([1-9]|[1-9][0-9]|1[01][0-9]|12[0-7])$", serverId)) // Forward the request to the appropriate Game Server. When a response is received from the Game Server, Login Server will handle it
             {
                 LSProcessor.processGSRequest(requestObject).thenAccept(cb::resolve); // Forward the request to the Game Server and send the response back to the FiskPay server
             }
@@ -94,7 +95,6 @@ public class FiskPayListener implements Listener
     @Override
     public void onConnect()
     {
-        
         LOGGER.info(getClass().getSimpleName() + ": Connection to FiskPay established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in....");
         
@@ -128,80 +128,33 @@ public class FiskPayListener implements Listener
         _connector.onlineServers(onlineServers);
     }
     
-    public static FiskPayListener getInstance()
+    public static FiskPayLoginClient getInstance()
     {
         return SingletonHolder.INSTANCE;
     }
     
-    private FiskPayListener()
+    private FiskPayLoginClient()
     {
-        
         LOGGER.info(getClass().getSimpleName() + ": Connecting to FiskPay...");
         _connector = new Connector(this);
     }
     
     private static class SingletonHolder
     {
-        private static final FiskPayListener INSTANCE = new FiskPayListener();
+        private static final FiskPayLoginClient INSTANCE = new FiskPayLoginClient();
     }
     
     private static String getServerName(String id)
     {
-        switch (id)
+        
+        GameServerTable gsTable = GameServerTable.getInstance();
+        
+        if (gsTable != null)
         {
-            case "1":
-                return "Bartz";
-            case "2":
-                return "Sieghardt";
-            case "3":
-                return "Kain";
-            case "4":
-                return "Lionna";
-            case "5":
-                return "Erica";
-            case "6":
-                return "Gustin";
-            case "7":
-                return "Devianne";
-            case "8":
-                return "Hindemith";
-            case "9":
-                return "Teon";
-            case "10":
-                return "Franz";
-            case "11":
-                return "Luna";
-            case "12":
-                return "Kastien";
-            case "13":
-                return "Airin";
-            case "14":
-                return "Staris";
-            case "15":
-                return "Ceriel";
-            case "16":
-                return "Fehyshar";
-            case "17":
-                return "Elhwynna";
-            case "18":
-                return "Ellikia";
-            case "19":
-                return "Shikken";
-            case "20":
-                return "Scryde";
-            case "21":
-                return "Frikios";
-            case "22":
-                return "Ophylia";
-            case "23":
-                return "Shakdun";
-            case "24":
-                return "Tarziph";
-            case "25":
-                return "Aria";
-            default:
-                return "Unknown";
+            return gsTable.getServerNameById(Integer.parseInt(id));
         }
+        
+        return "Unknown"; 
     }
     
     private static String getDateTime()

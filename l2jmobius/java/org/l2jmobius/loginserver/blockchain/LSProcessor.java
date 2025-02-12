@@ -2,6 +2,7 @@
 package org.l2jmobius.loginserver.blockchain;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
@@ -26,7 +27,12 @@ public class LSProcessor
                     return new JSONObject().put("fail", "walletAddress not a String");
                 }
                 
-                return LSMethods.getAccounts(data.getString("walletAddress")); // Get accounts from Login Server
+                if (!Pattern.matches("/^0x[a-fA-F0-9]{40}$/", data.getString("walletAddress")))
+                {
+                    return new JSONObject().put("fail", "Improper walletAddress");
+                }
+                
+                return LSMethods.getAccounts(data.getString("walletAddress")); // Get accounts from Login Server database
             }
             case "getClientBal":
             {
@@ -65,8 +71,22 @@ public class LSProcessor
                     return new JSONObject().put("fail", "walletAddress not a String");
                 }
                 
-                // to do
-                // return LSMethods.addAccount(); // Links the account to the wallet address
+                if ((data.getString("username") == null) || (data.getString("username").equals("")))
+                {
+                    return new JSONObject().put("fail", "Type your username");
+                }
+                
+                if ((data.getString("password") == null) || (data.getString("password").equals("")))
+                {
+                    return new JSONObject().put("fail", "Type your password");
+                }
+                
+                if (!Pattern.matches("/^0x[a-fA-F0-9]{40}$/", data.getString("walletAddress")))
+                {
+                    return new JSONObject().put("fail", "Improper walletAddress");
+                }
+                
+                return LSMethods.addAccount(data.getString("username"), data.getString("password"), data.getString("walletAddress")); // Links the account to the wallet address
             }
             case "removeAcc":
             {
@@ -100,8 +120,22 @@ public class LSProcessor
                     return new JSONObject().put("fail", "walletAddress not a String");
                 }
                 
-                // to do
-                // return LSMethods.removeAccount(); // Unlinks the account from the wallet address
+                if ((data.getString("username") == null) || (data.getString("username").equals("")))
+                {
+                    return new JSONObject().put("fail", "Type your username");
+                }
+                
+                if ((data.getString("password") == null) || (data.getString("password").equals("")))
+                {
+                    return new JSONObject().put("fail", "Type your password");
+                }
+                
+                if (!Pattern.matches("/^0x[a-fA-F0-9]{40}$/", data.getString("walletAddress")))
+                {
+                    return new JSONObject().put("fail", "Improper walletAddress");
+                }
+                
+                return LSMethods.removeAccount(data.getString("username"), data.getString("password"), data.getString("walletAddress")); // Unlinks the account from the wallet address
             }
             default:
             {
@@ -165,17 +199,17 @@ public class LSProcessor
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "address undefined"));
                 }
-
+                
                 if (!data.has("amount"))
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "amount undefined"));
                 }
-
+                
                 if (!data.has("character"))
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character undefined"));
                 }
-
+                
                 if (!data.has("refund"))
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "refund undefined"));
@@ -185,17 +219,17 @@ public class LSProcessor
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "address not a String"));
                 }
-
+                
                 if (!(data.get("amount") instanceof String))
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "amount not a String"));
                 }
-
+                
                 if (!(data.get("character") instanceof String))
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
                 }
-
+                
                 if (!(data.get("refund") instanceof String))
                 {
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "refund not a String"));

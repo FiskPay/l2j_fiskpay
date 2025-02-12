@@ -1,10 +1,15 @@
 // Login Server: ProcessorMethods.java
 package org.l2jmobius.loginserver.blockchain;
 
+import java.nio.charset.StandardCharsets;
+
+import java.security.MessageDigest;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,88 +25,212 @@ import org.l2jmobius.loginserver.GameServerTable.GameServerInfo;
 import org.l2jmobius.loginserver.GameServerThread;
 import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceive;
 
-public class LSMethods {
+public class LSMethods
+{
     private static final Logger LOGGER = Logger.getLogger(LSMethods.class.getName());
     private static final AtomicInteger counter = new AtomicInteger(0);
-
-    protected static JSONObject getAccounts(String walletAddress) {
-
-        JSONObject result;
-
-        try (Connection con = DatabaseFactory.getConnection();
-                PreparedStatement ps = con.prepareStatement("SELECT login FROM accounts WHERE wallet_address = ?")) {
+    
+    protected static JSONObject getAccounts(String walletAddress)
+    {
+        try
+        {
             JSONArray accounts = new JSONArray();
-
-            ps.setString(1, walletAddress);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                accounts.put(rs.getString("login"));
+            
+            try (Connection con = DatabaseFactory.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT login FROM accounts WHERE wallet_address = ?;"))
+            {
+                ps.setString(1, walletAddress);
+                
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        accounts.put(rs.getString("login"));
+                    }
+                }
+                
+                return new JSONObject().put("data", accounts);
             }
-
-            result = new JSONObject().put("data", accounts);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            result = new JSONObject().put("fail", "getAccounts SQL error");
+            return new JSONObject().put("fail", "getAccounts SQL error");
         }
-
-        return result;
     }
-
-    protected static CompletableFuture<JSONObject> sendRequestToGS(JSONObject requestObject) {
-        CompletableFuture<JSONObject> future = new CompletableFuture<>();
-
-        String serverId = requestObject.getString("id");
-        int gsID = Integer.parseInt(serverId);
-
-        GameServerTable gsTable = GameServerTable.getInstance();
-
-        if (gsTable == null) {
-            return CompletableFuture
-                    .completedFuture(new JSONObject().put("fail", "Could not get the GameServerTable instance"));
+    
+    protected static JSONObject addAccount(String username, String password, String walletAddress)
+    {
+        try
+        {
+            byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
+            String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
+            String databasePassword = "";
+            String databaseWallet = "";
+            
+            try (Connection con = DatabaseFactory.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
+            {
+                ps.setString(1, username);
+                
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        databasePassword = rs.getString("password");
+                        databaseWallet = rs.getString("wallet_address");
+                    }
+                }
+            }
+            
+            if (!databasePassword.equals(inputPassword))
+            {
+                return new JSONObject().put("fail", "Username - password mismatch");
+            }
+            
+            if (!databaseWallet.equals("not linked"))
+            {
+                return new JSONObject().put("fail", "Account " + username + " already linked to an Ethereum address");
+            }
+            
+            try (Connection con = DatabaseFactory.getConnection();
+                PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
+            {
+                ps.setString(1, walletAddress);
+                ps.setString(2, username);
+                
+                if (ps.executeUpdate() == 1)
+                {
+                    return new JSONObject().put("data", true);
+                }
+                
+                return new JSONObject().put("data", false);
+            }
         }
-
-        GameServerInfo gsInfo = gsTable.getRegisteredGameServerById(gsID);
-
-        if (gsInfo == null) {
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            return new JSONObject().put("fail", "addAccount SQL error");
+        }
+    }
+    
+    protected static JSONObject removeAccount(String username, String password, String walletAddress)
+    {
+        try
+        {
+            byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
+            String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
+            String databasePassword = "";
+            String databaseWallet = "";
+            
+            try (Connection con = DatabaseFactory.getConnection();
+                PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
+            {
+                ps.setString(1, username);
+                
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        databasePassword = rs.getString("password");
+                        databaseWallet = rs.getString("wallet_address");
+                    }
+                }
+            }
+            
+            if (!databasePassword.equals(inputPassword))
+            {
+                return new JSONObject().put("fail", "Username - password mismatch");
+            }
+            
+            if (!databaseWallet.equals(walletAddress))
+            {
+                return new JSONObject().put("fail", "Account " + username + " not linked to your Ethereum address");
+            }
+            
+            try (Connection con = DatabaseFactory.getConnection();
+                PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
+            {
+                ps.setString(1, "not linked");
+                ps.setString(2, username);
+                
+                if (ps.executeUpdate() == 1)
+                {
+                    return new JSONObject().put("data", true);
+                }
+                
+                return new JSONObject().put("data", false);
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            return new JSONObject().put("fail", "removeAccount SQL error");
+        }
+    }
+    
+    protected static CompletableFuture<JSONObject> sendRequestToGS(JSONObject requestObject)
+    {
+        CompletableFuture<JSONObject> future = new CompletableFuture<>();
+        
+        GameServerTable gsTable = GameServerTable.getInstance();
+        
+        if (gsTable == null)
+        {
+            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Could not get the GameServerTable instance"));
+        }
+        
+        GameServerInfo gsInfo = gsTable.getRegisteredGameServerById(Integer.parseInt(requestObject.getString("id")));
+        
+        if (gsInfo == null)
+        {
             return CompletableFuture.completedFuture(new JSONObject().put("fail", "Could not find Game Server info"));
         }
-
+        
         GameServerThread gsThread = gsInfo.getGameServerThread();
-
-        if (gsThread == null) {
+        
+        if (gsThread == null)
+        {
             return CompletableFuture.completedFuture(new JSONObject().put("fail", "Could not find Game Server thread"));
         }
-
+        
         int uniqueID = getNextID();
-
-        FiskPayResponseReceive.registerCallback(uniqueID, responseString -> {
+        
+        FiskPayResponseReceive.registerCallback(uniqueID, responseString ->
+        {
             JSONObject response;
-
-            if (responseString == null || responseString.isEmpty()) {
+            
+            if (responseString == null || responseString.isEmpty())
+            {
                 LOGGER.log(Level.WARNING, "Received an empty or null responseString");
                 response = new JSONObject().put("fail", "responseString is empty or null");
-            } else {
-                try {
+            }
+            else
+            {
+                try
+                {
                     response = new JSONObject(responseString);
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     LOGGER.log(Level.WARNING, "Invalid responseString: " + responseString, e);
                     response = new JSONObject().put("fail", "responseString is not a JSONObject string");
                 }
             }
-
-            if (!future.isDone()) {
+            
+            if (!future.isDone())
+            {
                 future.complete(response);
             }
         });
-
+        
         gsThread.sendFiskPayRequest(uniqueID, requestObject.toString()); // Forward the request
-
-        return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server timed out"), 10,
-                TimeUnit.SECONDS);
+        
+        return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server timeout"), 10, TimeUnit.SECONDS);
     }
-
-    private static int getNextID() {
+    
+    private static int getNextID()
+    {
         return counter.updateAndGet(value -> (value == 1000000) ? 0 : value + 1);
     }
 }

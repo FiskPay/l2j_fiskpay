@@ -4,7 +4,7 @@
  import org.l2jmobius.commons.threads.ThreadPool;
  import org.l2jmobius.commons.util.PropertiesParser;
  import org.l2jmobius.gameserver.network.loginserverpackets.game.ServerStatus;
-+import org.l2jmobius.loginserver.FiskPayListener;
++import org.l2jmobius.loginserver.FiskPayLoginClient;
  import org.l2jmobius.loginserver.network.LoginClient;
  import org.l2jmobius.loginserver.network.LoginPacketHandler;
  import org.l2jmobius.loginserver.ui.Gui;
@@ -12,7 +12,7 @@
  		new ConnectionManager<>(new InetSocketAddress(Config.LOGIN_BIND_ADDRESS, Config.PORT_LOGIN), LoginClient::new, new LoginPacketHandler());
  		LOGGER.info(getClass().getSimpleName() + ": is now listening on: " + Config.LOGIN_BIND_ADDRESS + ":" + Config.PORT_LOGIN);
  
-+		FiskPayListener.getInstance();
++		FiskPayLoginClient.getInstance();
  	}
  	
  	public GameServerListener getGameServerListener()
