@@ -32,18 +32,17 @@ public class LSMethods
     
     protected static JSONObject getAccounts(String walletAddress)
     {
-        try
+        try (Connection con = DatabaseFactory.getConnection())
         {
             JSONArray accounts = new JSONArray();
             
-            try (Connection con = DatabaseFactory.getConnection();
-                PreparedStatement ps = con.prepareStatement("SELECT login FROM accounts WHERE wallet_address = ?;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT login FROM accounts WHERE wallet_address = ?;"))
             {
                 ps.setString(1, walletAddress);
                 
                 try (ResultSet rs = ps.executeQuery())
                 {
-                    if (rs.next())
+                    while (rs.next())
                     {
                         accounts.put(rs.getString("login"));
                     }
@@ -59,17 +58,40 @@ public class LSMethods
         }
     }
     
+    protected static JSONObject getClientBalance()
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("SELECT SUM(balance) AS balance FROM gameservers;"))
+            {
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    if (rs.next() && rs.getString("balance") != null)
+                    {
+                        return new JSONObject().put("data", rs.getString("balance"));
+                    }
+                    
+                    return new JSONObject().put("data", "0");                 
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            return new JSONObject().put("fail", "getClientBalance SQL error");
+        }
+    }
+    
     protected static JSONObject addAccount(String username, String password, String walletAddress)
     {
-        try
+        try (Connection con = DatabaseFactory.getConnection();)
         {
             byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
             String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
             String databasePassword = "";
             String databaseWallet = "";
             
-            try (Connection con = DatabaseFactory.getConnection();
-                PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
             {
                 ps.setString(1, username);
                 
@@ -93,13 +115,12 @@ public class LSMethods
                 return new JSONObject().put("fail", "Account " + username + " already linked to an Ethereum address");
             }
             
-            try (Connection con = DatabaseFactory.getConnection();
-                PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
+            try (PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
             {
                 ps.setString(1, walletAddress);
                 ps.setString(2, username);
                 
-                if (ps.executeUpdate() == 1)
+                if (ps.executeUpdate() > 0)
                 {
                     return new JSONObject().put("data", true);
                 }
@@ -116,15 +137,14 @@ public class LSMethods
     
     protected static JSONObject removeAccount(String username, String password, String walletAddress)
     {
-        try
+        try (Connection con = DatabaseFactory.getConnection())
         {
             byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
             String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
             String databasePassword = "";
             String databaseWallet = "";
             
-            try (Connection con = DatabaseFactory.getConnection();
-                PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
             {
                 ps.setString(1, username);
                 
@@ -148,13 +168,12 @@ public class LSMethods
                 return new JSONObject().put("fail", "Account " + username + " not linked to your Ethereum address");
             }
             
-            try (Connection con = DatabaseFactory.getConnection();
-                PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
+            try (PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
             {
                 ps.setString(1, "not linked");
                 ps.setString(2, username);
                 
-                if (ps.executeUpdate() == 1)
+                if (ps.executeUpdate() > 0)
                 {
                     return new JSONObject().put("data", true);
                 }
