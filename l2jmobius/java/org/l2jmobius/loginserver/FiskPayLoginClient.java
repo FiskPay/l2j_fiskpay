@@ -10,6 +10,8 @@ import org.json.JSONObject;
 import org.l2jmobius.loginserver.blockchain.LSProcessor;
 
 import java.util.Calendar;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -22,7 +24,7 @@ public class FiskPayLoginClient implements Listener
     private static final String WALLET = "0x33a6657b336A2bef47769BCdcAdFCED8E78246AC";
     private static final String PASSWORD = "aa";
     
-    private static volatile JSONArray _onlineServers = new JSONArray();
+    private static final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
     
     private Connector _connector;
     
@@ -31,7 +33,7 @@ public class FiskPayLoginClient implements Listener
     {
         String nowDate = getDateTime();
         boolean success = LSProcessor.logDeposit(txHash, from, symbol, amount, server, character);
-                
+        
         if (success)
         {
             BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(server) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
@@ -100,7 +102,7 @@ public class FiskPayLoginClient implements Listener
         LOGGER.info(getClass().getSimpleName() + ": Connection to FiskPay established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in....");
         
-        _connector.login(SYMBOL, WALLET, PASSWORD, _onlineServers).thenAccept(result ->
+        _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept(result ->
         {
             LOGGER.info(getClass().getSimpleName() + ": " + result);
         }).exceptionally(e ->
@@ -124,10 +126,16 @@ public class FiskPayLoginClient implements Listener
         LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
     }
     
-    public void updateServers(JSONArray onlineServers)
+    public void updateServers(int serverId)
     {
-        _onlineServers = onlineServers;
-        _connector.onlineServers(onlineServers);
+        String id = Integer.toString(serverId);
+        
+        if (!_onlineServers.remove(id))
+        {
+            _onlineServers.add(id);
+        }
+        
+        _connector.onlineServers(new JSONArray(_onlineServers));
     }
     
     public static FiskPayLoginClient getInstance()
@@ -156,7 +164,7 @@ public class FiskPayLoginClient implements Listener
             return gsTable.getServerNameById(Integer.parseInt(id));
         }
         
-        return "Unknown"; 
+        return "Unknown";
     }
     
     private static String getDateTime()

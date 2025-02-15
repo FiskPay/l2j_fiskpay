@@ -1,0 +1,27 @@
+--- logging.properties
++++ logging.properties
+@@ -19,6 +19,8 @@
+ accounting.handlers = org.l2jmobius.log.handler.AccountingLogHandler
+ accounting.useParentHandlers = false
+ 
++blockchain.handlers = org.l2jmobius.log.handler.BlockchainLogHandler
++blockchain.useParentHandlers = false
+ 
+ # Default global logging level.
+ # This specifies which kinds of events are logged across
+@@ -125,6 +127,12 @@
+ org.l2jmobius.log.handler.AccountingLogHandler.count = 20
+ org.l2jmobius.log.handler.AccountingLogHandler.append = true
+ org.l2jmobius.log.handler.AccountingLogHandler.level = CONFIG
+ 
++# blockchain
++org.l2jmobius.log.handler.BlockchainLogHandler.pattern = log/blockchain%g.log
++org.l2jmobius.log.handler.BlockchainLogHandler.formatter = org.l2jmobius.log.formatter.AccountingFormatter
++org.l2jmobius.log.handler.BlockchainLogHandler.limit = 100000000
++org.l2jmobius.log.handler.BlockchainLogHandler.count = 20
++org.l2jmobius.log.handler.BlockchainLogHandler.append = true
++org.l2jmobius.log.handler.BlockchainLogHandler.level = CONFIG
++
+ ############################################################
+ # Facility specific properties.
+ # Provides extra control for each logger.
