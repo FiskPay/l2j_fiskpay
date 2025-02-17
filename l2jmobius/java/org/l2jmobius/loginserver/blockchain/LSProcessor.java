@@ -104,13 +104,25 @@ public class LSProcessor
             }
             case "doWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {                
-                return LSMethods.sendRequestToGS(requestObject).thenApply((resultObject)->{
+                return LSMethods.sendRequestToGS(requestObject).thenCompose((resultObject)->{
 
                     if(resultObject.has("fail")){
-                         return resultObject;
+                         return CompletableFuture.completedFuture(resultObject);
                     }
 
-                    return LSMethods.createRefundToDB(data.getString("address"), data.getString("amount"), data.getString("id"), data.getString("character"), data.getString("refund"));
+                    if(!LSMethods.createRefundToDB(data.getString("address"), data.getString("amount"), data.getString("id"), data.getString("character"), data.getString("refund"))){
+
+                        return LSMethods.deliverToCharacter(data.getString("id"), data.getString("character"), data.getString("amount")).thenApply((reverted)->{
+
+                            if(reverted){
+                                return new JSONObject().put("fail", "Refund could not be created. Withdrawal reverted");
+                            }
+
+                            return new JSONObject().put("fail", "REFUND COULD NOT BE CREATED AND WITHDRAWAL NOT REVERTED");
+                        });
+                    }
+
+                    return CompletableFuture.completedFuture(new JSONObject().put("data", true));
                 });
             }
             default:
@@ -124,7 +136,7 @@ public class LSProcessor
     {
         LSMethods.logDepositToDB(txHash, from, symbol, amount, srvId, character);
         
-        return LSMethods.deliverDepositToCharacter(srvId, amount, character);
+        return LSMethods.deliverToCharacter(srvId, character, amount);
     }
     
     public static boolean logWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
