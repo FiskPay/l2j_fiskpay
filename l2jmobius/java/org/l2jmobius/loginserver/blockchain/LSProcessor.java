@@ -72,7 +72,7 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "username not a String"));
                 }
                 
-                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "getChars" request to Game Server, and return the result
+                return LSMethods.sendRequestToGS(requestObject);
             }
             case "getCharBal":
             {
@@ -86,7 +86,7 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
                 }
                 
-                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "getCharBal" request to Game Server, and return the result
+                return LSMethods.sendRequestToGS(requestObject);
             }
             case "isOffline":
             {
@@ -100,11 +100,18 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
                 }
                 
-                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "isOffline" request to Game Server, and return the result
+                return LSMethods.sendRequestToGS(requestObject);
             }
             case "doWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {                
-                return LSMethods.sendRequestToGS(requestObject); // Calls an async method that sends a "doWithdraw" request to Game Server, and return the result
+                return LSMethods.sendRequestToGS(requestObject).thenApply((resultObject)->{
+
+                    if(resultObject.has("fail")){
+                         return resultObject;
+                    }
+
+                    return LSMethods.createRefundToDB(data.getString("address"), data.getString("amount"), data.getString("id"), data.getString("character"), data.getString("refund"));
+                });
             }
             default:
             {
@@ -113,13 +120,17 @@ public class LSProcessor
         }
     }
     
-    public static boolean logDeposit(String txHash, String from, String symbol, String amount, String server, String character)
+    public static CompletableFuture<boolean> logDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
-        return true;
+        LSMethods.logDepositToDB(txHash, from, symbol, amount, srvId, character);
+        
+        return LSMethods.deliverDepositToCharacter(srvId, amount, character);
     }
     
-    public static boolean logWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund)
+    public static boolean logWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
     {
-        return true;
+        LSMethods.logWithdrawToDB(txHash, to, symbol, amount, srvId, character, refund);
+        
+        return LSMethods.removeRefundFromDB(to, amount, srvId, character, refund); 
     }
 }
