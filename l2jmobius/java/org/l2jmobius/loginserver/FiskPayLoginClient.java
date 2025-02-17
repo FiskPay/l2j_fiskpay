@@ -30,48 +30,52 @@ public class FiskPayLoginClient implements Listener
     
     @Override
     public void onLogDeposit(String txHash, String from, String symbol, String amount, String server, String character)
-    {
-        String nowDate = getDateTime();
-        boolean success = LSProcessor.logDeposit(txHash, from, symbol, amount, server, character);
-        
-        if (success)
-        {
-            BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(server) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
-        }
-        else
-        {
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Deposit Start ---------------------------------------");
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash: " + txHash);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | From:   " + from);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | To:     " + character);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Server: " + getServerName(server));
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount: " + amount);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:  " + symbol);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | ---------------------------------------- Failed Deposit End ----------------------------------------");
-        }
+    {        
+        LSProcessor.logDeposit(txHash, from, symbol, amount, server, character).thenAccept((success)->{
+
+            String nowDate = getDateTime();
+            
+            if (success)
+            {
+                BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(server) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
+            }
+            else
+            {
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Deposit Start ---------------------------------------");
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash: " + txHash);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | From:   " + from);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | To:     " + character);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Server: " + getServerName(server));
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount: " + amount);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:  " + symbol);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | ---------------------------------------- Failed Deposit End ----------------------------------------");
+            }
+        });        
     }
     
     @Override
     public void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund)
     {
-        String nowDate = getDateTime();
-        boolean success = LSProcessor.logWithdraw(txHash, to, symbol, amount, server, character, refund);
-        
-        if (success)
-        {
-            BLOCKCHAIN_LOGGER.info(nowDate + " | Withdrawal on " + getServerName(server) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
-        }
-        else
-        {
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | -------------------------------------- Failed Withdrawal Start -------------------------------------");
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash: " + txHash);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | From:   " + character);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | To:     " + to);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Server: " + getServerName(server));
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount: " + amount);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:  " + symbol);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Withdrawal End --------------------------------------");
-        }
+        LSProcessor.logWithdraw(txHash, to, symbol, amount, server, character, refund).thenAccept((success)->{
+            
+            String nowDate = getDateTime();
+            
+            if (success)
+            {
+                BLOCKCHAIN_LOGGER.info(nowDate + " | Withdrawal on " + getServerName(server) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
+            }
+            else
+            {
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | -------------------------------------- Failed Withdrawal Start -------------------------------------");
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash: " + txHash);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | From:   " + character);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | To:     " + to);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Server: " + getServerName(server));
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount: " + amount);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:  " + symbol);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Withdrawal End --------------------------------------");
+            }
+        });
     }
     
     @Override
