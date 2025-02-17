@@ -27,7 +27,7 @@ public class LSProcessor
                     return new JSONObject().put("fail", "walletAddress not a String");
                 }
                 
-                if (!Pattern.matches("/^0x[a-fA-F0-9]{40}$/", data.getString("walletAddress")))
+                if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", data.getString("walletAddress")))
                 {
                     return new JSONObject().put("fail", "Improper walletAddress");
                 }
@@ -132,7 +132,7 @@ public class LSProcessor
         }
     }
     
-    public static CompletableFuture<boolean> logDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
+    public static CompletableFuture<Boolean> logDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
         LSMethods.logDepositToDB(txHash, from, symbol, amount, srvId, character);
         
