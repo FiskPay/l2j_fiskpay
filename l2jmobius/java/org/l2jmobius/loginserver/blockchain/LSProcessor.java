@@ -143,6 +143,6 @@ public class LSProcessor
     {
         LSMethods.logWithdrawToDB(txHash, to, symbol, amount, srvId, character);
         
-        return LSMethods.removeRefundFromDB(to, amount, srvId, character, refund); 
+        return LSMethods.removeRefundFromDB(srvId, character, refund, amount); 
     }
 }
