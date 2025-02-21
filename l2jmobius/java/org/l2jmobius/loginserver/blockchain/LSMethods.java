@@ -247,6 +247,46 @@ public class LSMethods
         
         return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server timeout"), 10, TimeUnit.SECONDS);
     }
+
+    protected static void logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {            
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO fiskpay_deposits (transaction_hash, server_id, character_name, wallet_address, amount) VALUES (?, ?, ?, ?, ?);"))
+            {
+                ps.setString(1, txHash);
+                ps.setInt(2, Integer.parseInt(srvId));
+                ps.setString(3, character);
+                ps.setString(4, from);
+                ps.setInt(5, Integer.parseInt(amount));
+                ps.executeUpdate();
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+        }
+    }
+    
+    protected static void logWithdrawToDB(String txHash, String to, String symbol, String amount, String srvId, String character)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {            
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO fiskpay_withdrawals (transaction_hash, server_id, character_name, wallet_address, amount) VALUES (?, ?, ?, ?, ?);"))
+            {
+                ps.setString(1, txHash);
+                ps.setInt(2, Integer.parseInt(srvId));
+                ps.setString(3, character);
+                ps.setString(4, to);
+                ps.setInt(5, Integer.parseInt(amount));
+                ps.executeUpdate();
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+        }
+    }
     
     private static int getNextID()
     {
