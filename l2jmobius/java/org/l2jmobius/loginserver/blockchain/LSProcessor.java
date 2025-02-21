@@ -141,7 +141,7 @@ public class LSProcessor
     
     public static boolean logWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
     {
-        LSMethods.logWithdrawToDB(txHash, to, symbol, amount, srvId, character, refund);
+        LSMethods.logWithdrawToDB(txHash, to, symbol, amount, srvId, character);
         
         return LSMethods.removeRefundFromDB(to, amount, srvId, character, refund); 
     }
