@@ -110,7 +110,7 @@ public class LSProcessor
                          return CompletableFuture.completedFuture(resultObject);
                     }
 
-                    if(!LSMethods.createRefundToDB(data.getString("address"), data.getString("amount"), data.getString("id"), data.getString("character"), data.getString("refund"))){
+                    if(!LSMethods.createRefundToDB(data.getString("id"), data.getString("character"), data.getString("refund"), data.getString("amount"))){
 
                         return LSMethods.deliverToCharacter(data.getString("id"), data.getString("character"), data.getString("amount")).thenApply((reverted)->{
 
