@@ -43,7 +43,7 @@ public class LSProcessor
                 return LSMethods.addAccount(data.getString("username"), data.getString("password"), data.getString("walletAddress")); // Links the account to the wallet address
             }
             case "removeAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
-            {                
+            {
                 return LSMethods.removeAccount(data.getString("username"), data.getString("password"), data.getString("walletAddress")); // Unlinks the account from the wallet address
             }
             default:
@@ -55,6 +55,7 @@ public class LSProcessor
     
     public static CompletableFuture<JSONObject> processGSRequest(JSONObject requestObject)
     {
+        String srvId = requestObject.getString("id");
         String subject = requestObject.getString("subject");
         JSONObject data = requestObject.getJSONObject("data");
         
@@ -72,7 +73,9 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "username not a String"));
                 }
                 
-                return LSMethods.sendRequestToGS(requestObject);
+                String username = data.getString("username");
+                
+                return LSMethods.getCharacters(srvId, username);
             }
             case "getCharBal":
             {
@@ -86,7 +89,9 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
                 }
                 
-                return LSMethods.sendRequestToGS(requestObject);
+                String character = data.getString("character");
+                
+                return LSMethods.getCharacterBalance(srvId, character);
             }
             case "isOffline":
             {
@@ -100,28 +105,50 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
                 }
                 
-                return LSMethods.sendRequestToGS(requestObject);
+                String character = data.getString("character");
+                
+                return LSMethods.isCharacterOffline(srvId, character);
             }
             case "doWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {                
-                return LSMethods.sendRequestToGS(requestObject).thenCompose((resultObject)->{
-
-                    if(resultObject.has("fail")){
-                         return CompletableFuture.completedFuture(resultObject);
+                String walletAddress = data.getString("walletAddress");
+                String character = data.getString("character");
+                String refund = data.getString("refund");
+                String amount = data.getString("amount");
+                
+                return LSMethods.getCharacterUsername(srvId, character).thenCompose((responseObject) ->
+                {
+                    
+                    if (responseObject.has("fail"))
+                    {
+                        return CompletableFuture.completedFuture(responseObject);
                     }
-
-                    if(!LSMethods.createRefundToDB(data.getString("id"), data.getString("character"), data.getString("refund"), data.getString("amount"))){
-
-                        return LSMethods.deliverToCharacter(data.getString("id"), data.getString("character"), data.getString("amount")).thenApply((reverted)->{
-
-                            if(reverted){
+                    
+                    String username = responseObject.getString("username");
+                    
+                    if (!LSMethods.isWalletOwner(username, walletAddress))
+                    {
+                        return CompletableFuture.completedFuture(new JSONObject().put("fail", "Wallet ownership verification failed"));
+                    }
+                    
+                    if (!LSMethods.isNewWithdraw(srvId, character, refund, amount))
+                    {
+                        return CompletableFuture.completedFuture(new JSONObject().put("fail", "Trying to exploit? Help us grow, report your findings"));
+                    }
+                    
+                    if (!LSMethods.createNewWithdraw(srvId, character, refund, amount))
+                    {
+                        return LSMethods.deliverToCharacter(srvId, character, amount).thenApply((delivered) ->
+                        {                            
+                            if (delivered)
+                            {
                                 return new JSONObject().put("fail", "Refund could not be created. Withdrawal reverted");
                             }
-
+                            
                             return new JSONObject().put("fail", "REFUND COULD NOT BE CREATED AND WITHDRAWAL NOT REVERTED");
                         });
                     }
-
+                    
                     return CompletableFuture.completedFuture(new JSONObject().put("data", true));
                 });
             }
@@ -135,14 +162,12 @@ public class LSProcessor
     public static CompletableFuture<Boolean> logDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
         LSMethods.logDepositToDB(txHash, from, symbol, amount, srvId, character);
-        
         return LSMethods.deliverToCharacter(srvId, character, amount);
     }
     
     public static boolean logWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
     {
         LSMethods.logWithdrawToDB(txHash, to, symbol, amount, srvId, character);
-        
-        return LSMethods.removeRefundFromDB(srvId, character, refund, amount); 
+        return LSMethods.finalizeWithdraw(srvId, character, refund, amount);
     }
 }

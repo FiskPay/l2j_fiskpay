@@ -8,7 +8,7 @@ import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +71,7 @@ public class LSMethods
                         return new JSONObject().put("data", rs.getString("balance"));
                     }
                     
-                    return new JSONObject().put("data", "0");                 
+                    return new JSONObject().put("data", "0");
                 }
             }
         }
@@ -188,7 +188,168 @@ public class LSMethods
         }
     }
     
-    protected static CompletableFuture<JSONObject> sendRequestToGS(JSONObject requestObject)
+    protected static boolean isWalletOwner(String username, String walletAddress)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("SELECT 1 FROM accounts WHERE login = ? AND wallet_address = ?;"))
+            {
+                ps.setString(1, username);
+                ps.setString(2, walletAddress);
+                
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    return rs.next();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    protected static boolean isNewWithdraw(String srvId, String character, String refund, String amount)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("SELECT 1 FROM fiskpay_temporary WHERE server_id = ? AND character_name = ? AND refund = ? AND amount = ?;"))
+            {
+                ps.setInt(1, Integer.parseInt(srvId));
+                ps.setString(2, character);
+                ps.setInt(3, Integer.parseInt(refund));
+                ps.setInt(4, Integer.parseInt(amount));
+                
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    return !rs.next();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    protected static boolean createNewWithdraw(String srvId, String character, String refund, String amount)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO fiskpay_temporary (server_id, character_name, refund, amount) VALUES (?, ?, ?, ?);"))
+            {
+                ps.setInt(1, Integer.parseInt(srvId));
+                ps.setString(2, character);
+                ps.setInt(3, Integer.parseInt(refund));
+                ps.setInt(4, Integer.parseInt(amount));
+                
+                return ps.executeUpdate() > 0;
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    protected static boolean finalizeWithdraw(String srvId, String character, String refund, String amount)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("DELETE FROM fiskpay_temporary WHERE server_id = ? AND character_name = ? AND refund = ? AND amount = ?;"))
+            {
+                ps.setInt(1, Integer.parseInt(srvId));
+                ps.setString(2, character);
+                ps.setInt(3, Integer.parseInt(refund));
+                ps.setInt(4, Integer.parseInt(amount));
+                
+                return ps.executeUpdate() > 0;
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error (delete): " + e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    protected static void logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO fiskpay_deposits (transaction_hash, server_id, character_name, wallet_address, amount) VALUES (?, ?, ?, ?, ?);"))
+            {
+                ps.setString(1, txHash);
+                ps.setInt(2, Integer.parseInt(srvId));
+                ps.setString(3, character);
+                ps.setString(4, from);
+                ps.setInt(5, Integer.parseInt(amount));
+                ps.executeUpdate();
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+        }
+    }
+    
+    protected static void logWithdrawToDB(String txHash, String to, String symbol, String amount, String srvId, String character)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO fiskpay_withdrawals (transaction_hash, server_id, character_name, wallet_address, amount) VALUES (?, ?, ?, ?, ?);"))
+            {
+                ps.setString(1, txHash);
+                ps.setInt(2, Integer.parseInt(srvId));
+                ps.setString(3, character);
+                ps.setString(4, to);
+                ps.setInt(5, Integer.parseInt(amount));
+                ps.executeUpdate();
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+        }
+    }
+    
+    protected static CompletableFuture<JSONObject> getCharacters(String srvId, String username)
+    {
+        return sendRequestToGS(srvId, "getCharacters", new JSONArray(username));
+    }
+    
+    protected static CompletableFuture<JSONObject> getCharacterBalance(String srvId, String character)
+    {
+        return sendRequestToGS(srvId, "getCharacterBalance", new JSONArray(character));
+    }
+    
+    protected static CompletableFuture<JSONObject> isCharacterOffline(String srvId, String character)
+    {
+        return sendRequestToGS(srvId, "isPlayerOffline", new JSONArray(character));
+    }
+    
+    protected static CompletableFuture<JSONObject> getCharacterUsername(String srvId, String character)
+    {
+        return sendRequestToGS(srvId, "getCharacterUsername", new JSONArray(character));
+    }
+    
+    protected static CompletableFuture<Boolean> deliverToCharacter(String srvId, String character, String amount)
+    {
+        return sendRequestToGS(srvId, "deliverToCharacter", new JSONArray(Arrays.asList(character, amount))).thenApply((resultObject) ->
+        {            
+            return resultObject.getBoolean("delivered");
+        });
+    }
+    
+    private static int getNextID()
+    {
+        return counter.updateAndGet(value -> (value == 1000000) ? 0 : value + 1);
+    }
+    
+    private static CompletableFuture<JSONObject> sendRequestToGS(String srvId, String subject, JSONArray info)
     {
         CompletableFuture<JSONObject> future = new CompletableFuture<>();
         
@@ -199,7 +360,7 @@ public class LSMethods
             return CompletableFuture.completedFuture(new JSONObject().put("fail", "Could not get the GameServerTable instance"));
         }
         
-        GameServerInfo gsInfo = gsTable.getRegisteredGameServerById(Integer.parseInt(requestObject.getString("id")));
+        GameServerInfo gsInfo = gsTable.getRegisteredGameServerById(Integer.parseInt(srvId));
         
         if (gsInfo == null)
         {
@@ -243,53 +404,15 @@ public class LSMethods
             }
         });
         
-        gsThread.sendFiskPayRequest(uniqueID, requestObject.toString()); // Forward the request
+        JSONObject requestObject = new JSONObject();
         
-        return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server timeout"), 10, TimeUnit.SECONDS);
-    }
-
-    protected static void logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
-    {
-        try (Connection con = DatabaseFactory.getConnection())
-        {            
-            try (PreparedStatement ps = con.prepareStatement("INSERT INTO fiskpay_deposits (transaction_hash, server_id, character_name, wallet_address, amount) VALUES (?, ?, ?, ?, ?);"))
-            {
-                ps.setString(1, txHash);
-                ps.setInt(2, Integer.parseInt(srvId));
-                ps.setString(3, character);
-                ps.setString(4, from);
-                ps.setInt(5, Integer.parseInt(amount));
-                ps.executeUpdate();
-            }
-        }
-        catch (Exception e)
-        {
-            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-        }
-    }
-    
-    protected static void logWithdrawToDB(String txHash, String to, String symbol, String amount, String srvId, String character)
-    {
-        try (Connection con = DatabaseFactory.getConnection())
-        {            
-            try (PreparedStatement ps = con.prepareStatement("INSERT INTO fiskpay_withdrawals (transaction_hash, server_id, character_name, wallet_address, amount) VALUES (?, ?, ?, ?, ?);"))
-            {
-                ps.setString(1, txHash);
-                ps.setInt(2, Integer.parseInt(srvId));
-                ps.setString(3, character);
-                ps.setString(4, to);
-                ps.setInt(5, Integer.parseInt(amount));
-                ps.executeUpdate();
-            }
-        }
-        catch (Exception e)
-        {
-            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-        }
-    }
-    
-    private static int getNextID()
-    {
-        return counter.updateAndGet(value -> (value == 1000000) ? 0 : value + 1);
+        requestObject.put("subject", subject);
+        requestObject.put("info", info);
+        
+        String requestString = requestObject.toString();
+        
+        gsThread.sendFiskPayRequest(uniqueID, requestString); // Forward the request
+        
+        return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server timed out"), 10, TimeUnit.SECONDS);
     }
 }
