@@ -339,7 +339,12 @@ public class LSMethods
     protected static CompletableFuture<Boolean> deliverToCharacter(String srvId, String character, String amount)
     {
         return sendRequestToGS(srvId, "deliverToCharacter", new JSONArray(Arrays.asList(character, amount))).thenApply((resultObject) ->
-        {            
+        {
+            if(resultObject.has("fail"))
+            {
+                return false;
+            }
+            
             return resultObject.getBoolean("delivered");
         });
     }
