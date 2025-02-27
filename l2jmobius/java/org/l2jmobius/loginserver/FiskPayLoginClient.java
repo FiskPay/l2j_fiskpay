@@ -31,23 +31,25 @@ public class FiskPayLoginClient implements Listener
     @Override
     public void onLogDeposit(String txHash, String from, String symbol, String amount, String server, String character)
     {        
-        LSProcessor.logDeposit(txHash, from, symbol, amount, server, character).thenAccept((success)->{
-
+        LSProcessor.logDeposit(txHash, from, symbol, amount, server, character).thenAccept((logResult) ->
+        {
             String nowDate = getDateTime();
             
-            if (success)
+            if(!logResult.has("fail"))
             {
                 BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(server) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
             }
             else
             {
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Deposit Start ---------------------------------------");
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash: " + txHash);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | From:   " + from);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | To:     " + character);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Server: " + getServerName(server));
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount: " + amount);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:  " + symbol);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash:   " + txHash);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | From:     " + from);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | To:       " + character);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(server));
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("fail"));
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Action:   You must manualy reward " + amount + " " + symbol + " to player");
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | ---------------------------------------- Failed Deposit End ----------------------------------------");
             }
         });        
@@ -57,21 +59,23 @@ public class FiskPayLoginClient implements Listener
     public void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund)
     {
         String nowDate = getDateTime();
-        boolean success = LSProcessor.logWithdraw(txHash, to, symbol, amount, server, character, refund);
+        JSONObject logResult = LSProcessor.logWithdraw(txHash, to, symbol, amount, server, character, refund);
          
-        if (success)
+        if(!logResult.has("fail"))
         {
             BLOCKCHAIN_LOGGER.info(nowDate + " | Withdrawal on " + getServerName(server) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
         }
         else
         {
             BLOCKCHAIN_LOGGER.warning(nowDate + " | -------------------------------------- Failed Withdrawal Start -------------------------------------");
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash: " + txHash);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | From:   " + character);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | To:     " + to);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Server: " + getServerName(server));
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount: " + amount);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:  " + symbol);
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash:   " + txHash);
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | From:     " + character);
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | To:       " + to);
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(server));
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("fail"));
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | Action:   You may manualy remove " + amount + " " + symbol + " from player");
             BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Withdrawal End --------------------------------------");
         }
     }
@@ -104,13 +108,14 @@ public class FiskPayLoginClient implements Listener
         LOGGER.info(getClass().getSimpleName() + ": Connection to FiskPay established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in....");
         
-        _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept(result ->
+        _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept((message) ->
         {
-            LOGGER.info(getClass().getSimpleName() + ": " + result);
-        }).exceptionally(e ->
+            LOGGER.info(getClass().getSimpleName() + ": " + message);
+        }).exceptionally((e) ->
         {
             LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
             LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+
             return null;
         });
     }
@@ -148,6 +153,7 @@ public class FiskPayLoginClient implements Listener
     private FiskPayLoginClient()
     {
         LOGGER.info(getClass().getSimpleName() + ": Connecting to FiskPay...");
+
         _connector = new Connector(this);
     }
     

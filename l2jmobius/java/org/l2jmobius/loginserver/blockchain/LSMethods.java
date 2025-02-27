@@ -8,6 +8,7 @@ import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
@@ -125,7 +126,7 @@ public class LSMethods
                     return new JSONObject().put("data", true);
                 }
                 
-                return new JSONObject().put("data", false);
+                return new JSONObject().put("fail", "Adding wallet address to account failed");
             }
         }
         catch (Exception e)
@@ -178,7 +179,7 @@ public class LSMethods
                     return new JSONObject().put("data", true);
                 }
                 
-                return new JSONObject().put("data", false);
+                return new JSONObject().put("fail", "Removing wallet address from account failed");
             }
         }
         catch (Exception e)
@@ -188,6 +189,32 @@ public class LSMethods
         }
     }
     
+    protected static JSONObject finalizeWithdraw(String srvId, String character, String refund, String amount)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("DELETE FROM fiskpay_temporary WHERE server_id = ? AND character_name = ? AND refund = ? AND amount = ?;"))
+            {
+                ps.setInt(1, Integer.parseInt(srvId));
+                ps.setString(2, character);
+                ps.setInt(3, Integer.parseInt(refund));
+                ps.setInt(4, Integer.parseInt(amount));
+                
+                if(ps.executeUpdate() > 0)
+                {
+                    return new JSONObject().put("data", true);
+                }
+
+                return new JSONObject().put("fail", "Withdraw not finalized");
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            return new JSONObject().put("fail", "finalizeWithdraw sql error");
+        }
+    }
+
     protected static boolean isWalletOwner(String username, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
@@ -250,32 +277,11 @@ public class LSMethods
         }
         catch (Exception e)
         {
-            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);            
             return false;
         }
     }
-    
-    protected static boolean finalizeWithdraw(String srvId, String character, String refund, String amount)
-    {
-        try (Connection con = DatabaseFactory.getConnection())
-        {
-            try (PreparedStatement ps = con.prepareStatement("DELETE FROM fiskpay_temporary WHERE server_id = ? AND character_name = ? AND refund = ? AND amount = ?;"))
-            {
-                ps.setInt(1, Integer.parseInt(srvId));
-                ps.setString(2, character);
-                ps.setInt(3, Integer.parseInt(refund));
-                ps.setInt(4, Integer.parseInt(amount));
-                
-                return ps.executeUpdate() > 0;
-            }
-        }
-        catch (Exception e)
-        {
-            LOGGER.log(Level.WARNING, "Database error (delete): " + e.getMessage(), e);
-            return false;
-        }
-    }
-    
+        
     protected static void logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
         try (Connection con = DatabaseFactory.getConnection())
@@ -336,22 +342,19 @@ public class LSMethods
         return sendRequestToGS(srvId, "getCharacterUsername", new JSONArray(character));
     }
     
-    protected static CompletableFuture<Boolean> deliverToCharacter(String srvId, String character, String amount)
+    protected static CompletableFuture<JSONObject> AddToCharacter(String srvId, String character, String amount)
     {
-        return sendRequestToGS(srvId, "deliverToCharacter", new JSONArray(Arrays.asList(character, amount))).thenApply((resultObject) ->
-        {
-            if(resultObject.has("fail"))
-            {
-                return false;
-            }
-            
-            return resultObject.getBoolean("delivered");
-        });
+        return sendRequestToGS(srvId, "deliverToCharacter", new JSONArray(Arrays.asList(character, amount)));
+    }
+
+    protected static CompletableFuture<JSONObject> removeFromCharacter(String srvId, String character, String amount)
+    {
+        return sendRequestToGS(srvId, "removeFromCharacter", new JSONArray(Arrays.asList(character, amount)));
     }
     
     private static int getNextID()
     {
-        return counter.updateAndGet(value -> (value == 1000000) ? 0 : value + 1);
+        return counter.updateAndGet((value) -> (value == 1000000) ? 0 : value + 1);
     }
     
     private static CompletableFuture<JSONObject> sendRequestToGS(String srvId, String subject, JSONArray info)
