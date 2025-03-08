@@ -1,4 +1,4 @@
-// Login Server: ProcessorMethods.java
+// Login Server: LSMethods.java
 package org.l2jmobius.loginserver.blockchain;
 
 import java.nio.charset.StandardCharsets;
@@ -198,13 +198,13 @@ public class LSMethods
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setString(2, character);
                 ps.setInt(3, Integer.parseInt(refund));
-                ps.setInt(4, Integer.parseInt(amount));
+                ps.setLong(4, Long.parseLong(amount));
                 
-                if(ps.executeUpdate() > 0)
+                if (ps.executeUpdate() > 0)
                 {
                     return new JSONObject().put("data", true);
                 }
-
+                
                 return new JSONObject().put("fail", "Withdraw not finalized");
             }
         }
@@ -214,7 +214,7 @@ public class LSMethods
             return new JSONObject().put("fail", "finalizeWithdraw sql error");
         }
     }
-
+    
     protected static boolean isWalletOwner(String username, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
@@ -246,7 +246,7 @@ public class LSMethods
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setString(2, character);
                 ps.setInt(3, Integer.parseInt(refund));
-                ps.setInt(4, Integer.parseInt(amount));
+                ps.setLong(4, Long.parseLong(amount));
                 
                 try (ResultSet rs = ps.executeQuery())
                 {
@@ -270,18 +270,18 @@ public class LSMethods
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setString(2, character);
                 ps.setInt(3, Integer.parseInt(refund));
-                ps.setInt(4, Integer.parseInt(amount));
+                ps.setLong(4, Long.parseLong(amount));
                 
                 return ps.executeUpdate() > 0;
             }
         }
         catch (Exception e)
         {
-            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);            
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
             return false;
         }
     }
-        
+    
     protected static void logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
         try (Connection con = DatabaseFactory.getConnection())
@@ -292,7 +292,7 @@ public class LSMethods
                 ps.setInt(2, Integer.parseInt(srvId));
                 ps.setString(3, character);
                 ps.setString(4, from);
-                ps.setInt(5, Integer.parseInt(amount));
+                ps.setLong(5, Long.parseLong(amount));
                 ps.executeUpdate();
             }
         }
@@ -312,7 +312,7 @@ public class LSMethods
                 ps.setInt(2, Integer.parseInt(srvId));
                 ps.setString(3, character);
                 ps.setString(4, to);
-                ps.setInt(5, Integer.parseInt(amount));
+                ps.setLong(5, Long.parseLong(amount));
                 ps.executeUpdate();
             }
         }
@@ -322,34 +322,112 @@ public class LSMethods
         }
     }
     
-    protected static CompletableFuture<JSONObject> getCharacters(String srvId, String username)
+    protected static CompletableFuture<JSONObject> getAccountCharacters(String srvId, String username)
     {
-        return sendRequestToGS(srvId, "getCharacters", new JSONArray(username));
+        return sendRequestToGS(srvId, "getAccountCharacters", new JSONArray().put(username));
     }
     
     protected static CompletableFuture<JSONObject> getCharacterBalance(String srvId, String character)
     {
-        return sendRequestToGS(srvId, "getCharacterBalance", new JSONArray(character));
+        return sendRequestToGS(srvId, "getCharacterBalance", new JSONArray().put(character));
     }
     
     protected static CompletableFuture<JSONObject> isCharacterOffline(String srvId, String character)
     {
-        return sendRequestToGS(srvId, "isPlayerOffline", new JSONArray(character));
+        return sendRequestToGS(srvId, "isCharacterOffline", new JSONArray().put(character));
     }
     
     protected static CompletableFuture<JSONObject> getCharacterUsername(String srvId, String character)
     {
-        return sendRequestToGS(srvId, "getCharacterUsername", new JSONArray(character));
+        return sendRequestToGS(srvId, "getCharacterUsername", new JSONArray().put(character));
     }
     
-    protected static CompletableFuture<JSONObject> AddToCharacter(String srvId, String character, String amount)
+    protected static CompletableFuture<JSONObject> addToCharacter(String srvId, String character, String amount)
     {
-        return sendRequestToGS(srvId, "deliverToCharacter", new JSONArray(Arrays.asList(character, amount)));
+        return sendRequestToGS(srvId, "addToCharacter", new JSONArray(Arrays.asList(character, amount)));
     }
-
+    
     protected static CompletableFuture<JSONObject> removeFromCharacter(String srvId, String character, String amount)
     {
         return sendRequestToGS(srvId, "removeFromCharacter", new JSONArray(Arrays.asList(character, amount)));
+    }
+    
+    protected static CompletableFuture<JSONObject> isGameServerAvailable(String srvId)
+    {
+        return sendRequestToGS(srvId, "isGameServerAvailable", new JSONArray());
+    }
+    
+    protected static void updateGameServerBalance(String srvId)
+    {
+        sendRequestToGS(srvId, "fetchGameServerBalance", new JSONArray()).thenAccept((responseObject) ->
+        {
+            if (responseObject.has("data"))
+            {
+                String balance = responseObject.getString("data");
+                
+                try (Connection con = DatabaseFactory.getConnection();)
+                {
+                    try (PreparedStatement ps = con.prepareStatement("UPDATE gameservers SET balance = ? WHERE server_id = ?;"))
+                    {
+                        ps.setLong(1, Long.parseLong(balance));
+                        ps.setInt(2, Integer.parseInt(srvId));
+                        ps.executeUpdate();
+                    }
+                }
+                catch (Exception e)
+                {
+                    LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+                }
+            }
+            else
+            {
+                LOGGER.log(Level.WARNING, "Failed to update Game Server balance. Server id: " + srvId);
+            }
+        });
+    }
+    
+    protected static void refundPlayers()
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("SELECT * FROM fiskpay_temporary WHERE refund < ?;"))
+            {
+                int timestamp = (int) (System.currentTimeMillis() / 1000);
+                ps.setInt(1, timestamp);
+                
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    while (rs.next())
+                    {
+                        String srvId = rs.getString("server_id");
+                        String character = rs.getString("character_name");
+                        String amount = rs.getString("amount");
+                        String refund = rs.getString("refund");
+                        
+                        addToCharacter(srvId, character, amount).thenAccept(addObject ->
+                        {
+                            if (addObject.has("data") && addObject.getBoolean("data"))
+                            {
+                                JSONObject finalizeObject = finalizeWithdraw(srvId, character, refund, amount);
+                                
+                                if (!(finalizeObject.has("data") && finalizeObject.getBoolean("data")))
+                                {
+                                    LOGGER.log(Level.WARNING, "Failed to refund player (finalize): " + character + " on server: " + srvId);
+                                }
+                            }
+                            else
+                            {
+                                LOGGER.log(Level.WARNING, "Failed to refund player (add): " + character + " on server: " + srvId);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error in refundPlayers: " + e.getMessage(), e);
+        }
     }
     
     private static int getNextID()

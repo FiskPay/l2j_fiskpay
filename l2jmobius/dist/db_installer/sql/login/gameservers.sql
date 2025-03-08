@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `gameservers` (
 ALTER TABLE `gameservers`
   ADD COLUMN IF NOT EXISTS `hexid` VARCHAR(50) NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS `host` VARCHAR(50) NOT NULL DEFAULT '',
-  ADD COLUMN IF NOT EXISTS `balance` INT(10) UNSIGNED NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS `balance` BIGINT UNSIGNED NOT NULL DEFAULT 0;
 
 -- Insert default values if not already present
 INSERT INTO `gameservers` (`server_id`, `hexid`, `host`) 
