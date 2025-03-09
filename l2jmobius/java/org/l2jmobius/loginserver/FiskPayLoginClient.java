@@ -171,7 +171,7 @@ public class FiskPayLoginClient implements Listener
         ThreadPool.scheduleAtFixedRate(() ->
         {
             LSProcessor.refundPlayers();
-        },0,150000);
+        }, 0, 150000);
 
         ThreadPool.scheduleAtFixedRate(() ->
         {
@@ -179,7 +179,7 @@ public class FiskPayLoginClient implements Listener
             {
                 LSProcessor.updateGameServerBalance(srvId);
             }
-        },75000,150000);
+        }, 75000, 150000);
     }
     
     private static class SingletonHolder

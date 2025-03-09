@@ -4,5 +4,5 @@ CREATE TABLE IF NOT EXISTS `fiskpay_temporary` (
   `character_name` VARCHAR(45) NOT NULL,
   `refund` INT(10) UNSIGNED NOT NULL,
   `amount` BIGINT UNSIGNED NOT NULL,
-  PRIMARY KEY (`server_id`,`character_id`,`refund`)
+  PRIMARY KEY (`server_id`,`character_name`,`refund`)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

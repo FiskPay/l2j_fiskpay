@@ -10,23 +10,31 @@ import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 
-public class Connector {
-
+public class Connector
+{
     private Socket _socket;
     private Listener _listener;
 
-    public Connector(Listener listener) {
-
+    public Connector(Listener listener)
+    {
         _listener = listener;
 
-        try {
+        try
+        {
+            Thread.sleep(10000); // This delay is used to make sure that the previous connection is properly closed when restarting the Login Server.
+        }
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+        }
 
+        try {
             _socket = IO.socket("wss://ds.fiskpay.com:42099");
 
-            _socket.on("logDeposit", args -> {
-
-                if (args.length == 6) {
-
+            _socket.on("logDeposit", (args) -> 
+            {
+                if (args.length == 6)
+                {
                     String txHash = (String) args[0];
                     String from = (String) args[1];
                     String symbol = (String) args[2];
@@ -38,10 +46,10 @@ public class Connector {
                 }
             });
 
-            _socket.on("logWithdrawal", args -> {
-
-                if (args.length == 7) {
-
+            _socket.on("logWithdrawal", (args) ->
+            {
+                if (args.length == 7)
+                {
                     String txHash = (String) args[0];
                     String to = (String) args[1];
                     String symbol = (String) args[2];
@@ -54,36 +62,40 @@ public class Connector {
                 }
             });
 
-            _socket.on("connect", _ -> {
+            _socket.on("connect", (_) ->
+            {
                 _listener.onConnect();
             });
 
-            _socket.on("disconnect", _ -> {
+            _socket.on("disconnect", (_) ->
+            {
                 _listener.onDisconnect();
             });
 
-            _socket.on("request", args -> {
-
-                if (args.length == 2) {
-
+            _socket.on("request", (args) ->
+            {
+                if (args.length == 2)
+                {
                     JSONObject requestObject = (JSONObject) args[0];
                     Ack ack = (Ack) args[1];
 
-                    _listener.onRequest(requestObject, (responseObject) -> {
+                    _listener.onRequest(requestObject, (responseObject) ->
+                    {
                         ack.call(responseObject);
                     });
                 }
             });
 
             _socket.connect();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             _listener.onError(e);
         }
     }
 
-    public CompletableFuture<String> login(String tokenSymbol, String clientWalletAddress, String clientPassword,
-            JSONArray onlineServers) {
-
+    public CompletableFuture<String> login(String tokenSymbol, String clientWalletAddress, String clientPassword, JSONArray onlineServers)
+    {
         CompletableFuture<String> future = new CompletableFuture<>();
         JSONObject sendObject = new JSONObject();
 
@@ -92,22 +104,28 @@ public class Connector {
         sendObject.put("password", clientPassword);
         sendObject.put("servers", onlineServers);
 
-        _socket.emit("login", sendObject, new Ack() {
-
+        _socket.emit("login", sendObject, new Ack()
+        {
             @Override
-            public void call(Object... response) {
-
-                try {
-
+            public void call(Object... response)
+            {
+                try
+                {
                     JSONObject responseObject = (JSONObject) response[0];
 
-                    if (responseObject.has("fail")) {
+                    if (responseObject.has("fail"))
+                    {
                         future.complete(responseObject.getString("fail"));
-                    } else {
+                    }
+                    else
+                    {
                         future.complete("Signed in successfully");
                     }
-                } catch (Exception e) {
-                    if (!future.isDone()) {
+                }
+                catch (Exception e)
+                {
+                    if (!future.isDone())
+                    {
                         future.completeExceptionally(e);
                     }
                 }
@@ -117,7 +135,8 @@ public class Connector {
         return future.completeOnTimeout("Login request timed out", 5, TimeUnit.SECONDS);
     }
 
-    public void onlineServers(JSONArray onlineServers) {
+    public void onlineServers(JSONArray onlineServers)
+    {
         _socket.emit("onlineServers", onlineServers);
     }
 }

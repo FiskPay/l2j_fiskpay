@@ -2,12 +2,11 @@ package com.fiskpay.l2j;
 
 import org.json.JSONObject;
 
-public interface Listener {
-
+public interface Listener
+{
     void onLogDeposit(String txHash, String from, String symbol, String amount, String server, String character);
 
-    void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character,
-            String refund);
+    void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund);
 
     void onRequest(JSONObject requestObject, Callback cb);
 
@@ -18,7 +17,8 @@ public interface Listener {
     void onError(Exception e);
 
     @FunctionalInterface
-    interface Callback {
+    interface Callback
+    {
         void resolve(JSONObject callbackObject);
     }
 }
