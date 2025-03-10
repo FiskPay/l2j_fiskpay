@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,6 +19,7 @@ import org.l2jmobius.gameserver.instancemanager.IdManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.item.instance.Item;
+import org.l2jmobius.gameserver.model.itemcontainer.PlayerInventory;
 import org.l2jmobius.gameserver.network.SystemMessageId;
 import org.l2jmobius.gameserver.network.serverpackets.InventoryUpdate;
 import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
@@ -77,7 +79,7 @@ public class GSMethods
             
             return new JSONObject().put("data", "0");
         }
-
+        
         try (Connection con = DatabaseFactory.getConnection())
         {
             try (PreparedStatement ps = con.prepareStatement("SELECT SUM(i.count) AS balance FROM items AS i, characters AS c WHERE c.charId = i.owner_id AND c.char_name = ? AND i.item_id = ? AND i.loc = 'INVENTORY';"))
@@ -114,11 +116,11 @@ public class GSMethods
         
         Player player = World.getInstance().getPlayer(playerId);
         
-        if (player == null){
-
+        if (player == null)
+        {
             return new JSONObject().put("data", 0);
         }
-
+        
         return new JSONObject().put("data", 1);
     }
     
@@ -162,7 +164,9 @@ public class GSMethods
         
         if (player != null)
         {
-            Item inventoryItem = player.getInventory().getItemByItemId(REWARD_ID);
+            PlayerInventory inventory = player.getInventory();
+            Item inventoryItem = inventory.getItemByItemId(REWARD_ID);
+            
             InventoryUpdate iu = new InventoryUpdate();
             SystemMessage sm = new SystemMessage(SystemMessageId.YOU_HAVE_EARNED_S2_S1_S);
             
@@ -186,6 +190,8 @@ public class GSMethods
             
             player.sendInventoryUpdate(iu);
             player.sendPacket(sm);
+            
+            inventory.updateDatabase();
             
             return new JSONObject().put("data", true);
         }
@@ -276,7 +282,9 @@ public class GSMethods
         
         if (player != null)
         {
-            Item inventoryItem = player.getInventory().getItemByItemId(REWARD_ID);
+            PlayerInventory inventory = player.getInventory();
+            Item inventoryItem = inventory.getItemByItemId(REWARD_ID);
+            
             InventoryUpdate iu = new InventoryUpdate();
             SystemMessage sm = new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED);
             
@@ -308,6 +316,8 @@ public class GSMethods
             
             player.sendInventoryUpdate(iu);
             player.sendPacket(sm);
+            
+            inventory.updateDatabase();
             
             return new JSONObject().put("data", true);
         }
@@ -412,15 +422,15 @@ public class GSMethods
     protected static JSONObject isGameServerAvailable()
     {
         Shutdown sd = Shutdown.getInstance();
-
-        if(sd == null)
+        
+        if (sd == null)
         {
             return new JSONObject().put("fail", "No Shutdown instance");
         }
-
+        
         return new JSONObject().put("data", sd.getMode() == 0);
     }
-
+    
     protected static JSONObject fetchGameServerBalance()
     {
         try (Connection con = DatabaseFactory.getConnection())
