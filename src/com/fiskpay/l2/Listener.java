@@ -19,16 +19,27 @@
 * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.l2jmobius.gameserver.network.loginserverpackets.game;
+package com.fiskpay.l2;
 
-import org.l2jmobius.commons.network.base.BaseWritablePacket;
+import org.json.JSONObject;
 
-public class FiskPayResponseSend extends BaseWritablePacket
+public interface Listener
 {
-    public FiskPayResponseSend(int requestId, String responseData)
+    void onLogDeposit(String txHash, String from, String symbol, String amount, String server, String character);
+
+    void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund);
+
+    void onRequest(JSONObject requestObject, Callback cb);
+
+    void onConnect();
+
+    void onDisconnect();
+
+    void onError(Exception e);
+
+    @FunctionalInterface
+    interface Callback
     {
-        writeByte(0x0C);
-        writeInt(requestId);
-        writeString(responseData);
+        void resolve(JSONObject callbackObject);
     }
 }
