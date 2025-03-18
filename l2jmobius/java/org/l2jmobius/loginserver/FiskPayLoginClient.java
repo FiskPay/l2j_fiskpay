@@ -43,7 +43,7 @@ public class FiskPayLoginClient implements Listener
     
     private static final String SYMBOL = "USDT"; // USDT or TOS
     private static final String WALLET = "WALLET_ADDRESS_HERE"; // Add your public address here
-    private static final String PASSWORD = "SUPER_SECRET_PASSWORD"; // Register here: https://l2.fiskpay.com/admin/Your_Public_Address_Here
+    private static final String PASSWORD = "SUPER_SECRET_PASSWORD"; // Register here: https://l2.fiskpay.com/
     
     private static final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
     
