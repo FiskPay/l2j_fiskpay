@@ -1,6 +1,6 @@
 # l2j_fiskpay
 
-L2J FiskPay brings cryptocurrency payment integration to L2J servers, enabling seamless in-game transactions.
+FiskPay brings cryptocurrency payment integration to L2J servers, enabling seamless in-game transactions.
 
 
 ## Table of Contents
@@ -14,12 +14,12 @@ L2J FiskPay brings cryptocurrency payment integration to L2J servers, enabling s
 
 ## Introduction
 
-L2J FiskPay is a customized server integration project for L2J Mobius that adds blockchain payment functionality via FiskPay. This project enables in-game transactions (deposits, withdrawals) linked to Ethereum wallet addresses, allowing players to interact with blockchain-based services seamlessly, using the Polygon Network.
+This repository is a customized integration project for L2JMobius, adding blockchain payment functionality through FiskPay. It enables in-game transactions (deposits and withdrawals) linked to Ethereum wallet addresses, allowing players to seamlessly interact with blockchain-based services on the Polygon Network.
 
 
 ## Features
 
-- **Blockchain Integration**: Connects L2J Mobius with the FiskPay blockchain service for handling deposits and withdrawals.
+- **Blockchain Integration**: Connects L2JMobius with the FiskPay blockchain service for handling deposits and withdrawals.
 - **Account Linking**: Allows players to link/unlink their Ethereum wallet addresses with their in-game accounts.
 - **Game Server Communication**: Uses asynchronous communication to handle requests between the Login Server and Game Servers.
 - **Secure Transactions**: Implements security checks such as wallet ownership verification and anti-exploit measures..
@@ -27,7 +27,7 @@ L2J FiskPay is a customized server integration project for L2J Mobius that adds 
 
 ## Requirements
 
-- L2J Mobius Server
+- L2JMobius source files
 - FiskPay blockchain service credentials
 - Basic knowledge of how to apply patches using Java
 - Web3 Wallet (i.e. MetaMask)
@@ -51,26 +51,26 @@ Update your Login Server database using the files located in this repository `l2
 
 Register your L2J server by obtaining service credentials at:
 
-[https://l2.fiskpay.com/admin/USER_ETHEREUM_WALLET_ADDRESS_HERE/](https://l2.fiskpay.com/admin/USER_ETHEREUM_WALLET_ADDRESS_HERE/)
+[https://l2.fiskpay.com/](https://l2.fiskpay.com/)
 
-Replace `USER_ETHEREUM_WALLET_ADDRESS_HERE` with your actual Ethereum wallet address. To register, use your desired password and your Login Server remote IPv4 address.
+To register, use your desired password and your Login Server remote IPv4 address.
 
 ### 4. Edit FiskPayLoginClient.java and GSMethods.java files
 
 Open `FiskPayLoginClient.java` and add your credentials to the appropriate constants. Then, if needed, open `GSMethods.java` and replace the reward item id.
 
-### 5. Complile your local L2J Mobius project
+### 5. Complile your local L2JMobius project
 
-Compile your local L2J Mobius project by following the instuctions given at:
-[https://l2jmobius.org/forum/index.php?topic=3231.0](https://l2jmobius.org/forum/index.php?topic=3231.0)
+Compile your local L2JMobius project by following the instuctions given at:
+[https://l2jmobius.org/forum/index.php?topic=3231.0/](https://l2jmobius.org/forum/index.php?topic=3231.0/)
 
 ### 6. Access your blockchain panel
 
 Manage transactions between your server and the blockchain via the following link:
 
-[https://l2.fiskpay.com/USER_ETHEREUM_WALLET_ADDRESS_HERE/](https://l2.fiskpay.com/USER_ETHEREUM_WALLET_ADDRESS_HERE/)
+[https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/](https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/)
 
-Replace USER_ETHEREUM_WALLET_ADDRESS_HERE with your actual Ethereum wallet address. 
+Replace YOUR_ETHEREUM_ADDRESS_HERE with your actual Ethereum wallet address. 
 
 
 ## License
