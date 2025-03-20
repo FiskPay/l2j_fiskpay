@@ -22,7 +22,11 @@ This repository is a customized integration project for L2JMobius, adding blockc
 - **Blockchain Integration**: Connects L2JMobius with the FiskPay blockchain service for handling deposits and withdrawals.
 - **Account Linking**: Allows players to link/unlink their Ethereum wallet addresses with their in-game accounts.
 - **Game Server Communication**: Uses asynchronous communication to handle requests between the Login Server and Game Servers.
-- **Secure Transactions**: Implements security checks such as wallet ownership verification and anti-exploit measures..
+- **Secure Transactions**: Implements security checks such as wallet ownership verification and anti-exploit measures.
+- **Real-time Transaction Verification**: Ensures instant validation of blockchain transactions, reducing wait times and preventing fraud.
+- **Automated Delivery System**: Delivers in-game items or currency automatically upon successful blockchain transaction confirmation.
+- **Support for Multiple Cryptocurrencies**: Enables transactions using various cryptocurrencies, providing flexibility for administrators.
+- **User-friendly Payment Interface**: Offers a seamless and intuitive payment experience, simplifying blockchain transactions for users.
 
 
 ## Requirements
