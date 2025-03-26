@@ -24,56 +24,68 @@ package org.l2jmobius.gameserver.blockchain;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class GSProcessor {
-    public static String processRequest(String requestString) {
+public class GSProcessor
+{
+    public static String processRequest(String requestString)
+    {
         JSONObject requestObject = new JSONObject(requestString);
         JSONObject responseObject = new JSONObject();
 
         String subject = requestObject.getString("subject");
         JSONArray info = requestObject.getJSONArray("info");
 
-        switch (subject) {
-            case "getAccountCharacters": {
+        switch (subject)
+        {
+            case "getAccountCharacters":
+            {
                 String username = info.getString(0);
                 responseObject = GSMethods.getAccountCharacters(username);
                 break;
             }
-            case "getCharacterBalance": {
+            case "getCharacterBalance":
+            {
                 String character = info.getString(0);
                 responseObject = GSMethods.getCharacterBalance(character);
                 break;
             }
-            case "isCharacterOffline": {
+            case "isCharacterOffline":
+            {
                 String character = info.getString(0);
                 responseObject = GSMethods.isCharacterOffline(character);
                 break;
             }
-            case "getCharacterUsername": {
+            case "getCharacterUsername":
+            {
                 String character = info.getString(0);
                 responseObject = GSMethods.getCharacterUsername(character);
                 break;
             }
-            case "addToCharacter": {
+            case "addToCharacter":
+            {
                 String character = info.getString(0);
                 String amount = info.getString(1);
                 responseObject = GSMethods.addToCharacter(character, amount);
                 break;
             }
-            case "removeFromCharacter": {
+            case "removeFromCharacter":
+            {
                 String character = info.getString(0);
                 String amount = info.getString(1);
                 responseObject = GSMethods.removeFromCharacter(character, amount);
                 break;
             }
-            case "isGameServerAvailable": {
+            case "isGameServerAvailable":
+            {
                 responseObject = GSMethods.isGameServerAvailable();
                 break;
             }
-            case "fetchGameServerBalance": {
+            case "fetchGameServerBalance":
+            {
                 responseObject = GSMethods.fetchGameServerBalance();
                 break;
             }
-            default: {
+            default:
+            {
                 responseObject = new JSONObject().put("fail", "GS request subject unknown");
                 break;
             }

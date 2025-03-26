@@ -49,7 +49,7 @@ import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceiv
 public class LSMethods
 {
     private static final Logger LOGGER = Logger.getLogger(LSMethods.class.getName());
-    private static final AtomicInteger counter = new AtomicInteger(0);
+    private static final AtomicInteger _counter = new AtomicInteger(0);
     
     protected static JSONObject getAccounts(String walletAddress)
     {
@@ -123,6 +123,10 @@ public class LSMethods
                         databasePassword = rs.getString("password");
                         databaseWallet = rs.getString("wallet_address");
                     }
+                    else
+                    {
+                        return new JSONObject().put("fail", "Account not found");
+                    }
                 }
             }
             
@@ -175,6 +179,10 @@ public class LSMethods
                     {
                         databasePassword = rs.getString("password");
                         databaseWallet = rs.getString("wallet_address");
+                    }
+                    else
+                    {
+                        return new JSONObject().put("fail", "Account not found");
                     }
                 }
             }
@@ -239,7 +247,7 @@ public class LSMethods
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
-            try (PreparedStatement ps = con.prepareStatement("SELECT 1 FROM accounts WHERE login = ? AND wallet_address = ?;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT 1 FROM accounts WHERE login = ? AND wallet_address = ? LIMIT 1;"))
             {
                 ps.setString(1, username);
                 ps.setString(2, walletAddress);
@@ -261,7 +269,7 @@ public class LSMethods
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
-            try (PreparedStatement ps = con.prepareStatement("SELECT 1 FROM fiskpay_temporary WHERE server_id = ? AND character_name = ? AND refund = ? AND amount = ?;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT 1 FROM fiskpay_temporary WHERE server_id = ? AND character_name = ? AND refund = ? AND amount = ? LIMIT 1;"))
             {
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setString(2, character);
@@ -452,7 +460,7 @@ public class LSMethods
     
     private static int getNextID()
     {
-        return counter.updateAndGet((value) -> (value == 1000000) ? 0 : value + 1);
+        return _counter.updateAndGet((value) -> (value == 1000000) ? 0 : value + 1);
     }
     
     private static CompletableFuture<JSONObject> sendRequestToGS(String srvId, String subject, JSONArray info)
