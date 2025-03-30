@@ -9,19 +9,19 @@
  import org.l2jmobius.loginserver.network.loginserverpackets.LoginServerFail;
 @@ -105,6 +106,8 @@ public class GameServerThread extends Thread
  				LOGGER.info("Server [" + getServerId() + "] " + GameServerTable.getInstance().getServerNameById(getServerId()) + " is now set as disconnected.");
- 
- 				FiskPayLoginClient.getInstance().updateServers(getServerId(),false);
-+		}
-+		LoginServer.getInstance().getGameServerListener().removeGameServer(this);
++ 
++ 				FiskPayLoginClient.getInstance().updateServers(getServerId(),false);
+		}
+		LoginServer.getInstance().getGameServerListener().removeGameServer(this);
  		LoginServer.getInstance().getGameServerListener().removeFloodProtection(_connectionIp);
  	}
  
 @@ -156,6 +159,8 @@ public class GameServerThread extends Thread
  		gsi.setAuthed(true);
- 
- 		FiskPayLoginClient.getInstance().updateServers(getServerId(),true);
-+	}
-+
++ 
++ 		FiskPayLoginClient.getInstance().updateServers(getServerId(),true);
+	}
+
  	public void forceClose(int reason)
  	{
  		sendPacket(new LoginServerFail(reason));

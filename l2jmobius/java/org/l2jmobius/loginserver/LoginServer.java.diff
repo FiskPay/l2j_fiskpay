@@ -11,7 +11,7 @@
 @@ -119,6 +120,7 @@
  		new ConnectionManager<>(new InetSocketAddress(Config.LOGIN_BIND_ADDRESS, Config.PORT_LOGIN), LoginClient::new, new LoginPacketHandler());
  		LOGGER.info(getClass().getSimpleName() + ": is now listening on: " + Config.LOGIN_BIND_ADDRESS + ":" + Config.PORT_LOGIN);
- 
++ 
 +		FiskPayLoginClient.getInstance();
  	}
  	
