@@ -1,13 +1,14 @@
 --- GameServerThread.java
 +++ GameServerThread.java
-@@ -17,6 +17,7 @@ import org.l2jmobius.loginserver.network.GameServerPacketHandler.GameServerState;
+@@ -17,6 +17,7 @@
+ import org.l2jmobius.loginserver.network.GameServerPacketHandler.GameServerState;
  import org.l2jmobius.loginserver.network.ScrambledKeyPair;
  import org.l2jmobius.loginserver.network.loginserverpackets.ChangePasswordResponse;
 +import org.l2jmobius.loginserver.network.loginserverpackets.FiskPayRequestSend;
  import org.l2jmobius.loginserver.network.loginserverpackets.InitLS;
  import org.l2jmobius.loginserver.network.loginserverpackets.KickPlayer;
  import org.l2jmobius.loginserver.network.loginserverpackets.LoginServerFail;
-@@ -105,6 +106,8 @@ public class GameServerThread extends Thread
+@@ -105,6 +106,8 @@
  				LOGGER.info("Server [" + getServerId() + "] " + GameServerTable.getInstance().getServerNameById(getServerId()) + " is now set as disconnected.");
 + 
 + 				FiskPayLoginClient.getInstance().updateServers(getServerId(),false);
@@ -16,7 +17,7 @@
  		LoginServer.getInstance().getGameServerListener().removeFloodProtection(_connectionIp);
  	}
  
-@@ -156,6 +159,8 @@ public class GameServerThread extends Thread
+@@ -156,6 +159,8 @@
  		gsi.setAuthed(true);
 + 
 + 		FiskPayLoginClient.getInstance().updateServers(getServerId(),true);
@@ -25,7 +26,7 @@
  	public void forceClose(int reason)
  	{
  		sendPacket(new LoginServerFail(reason));
-@@ -254,6 +259,11 @@ public class GameServerThread extends Thread
+@@ -254,6 +259,11 @@
  	}
  
  	public void changePasswordResponse(String characterName, String msgToSend)
