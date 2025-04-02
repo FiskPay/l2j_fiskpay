@@ -1,6 +1,6 @@
 # l2j_fiskpay
 
-FiskPay brings cryptocurrency payment integration to L2J servers, enabling seamless in-game transactions.
+FiskPay brings cryptocurrency payment integration to Lineage 2 Java emulators, enabling seamless in-game transactions.
 
 
 ## Table of Contents
@@ -14,24 +14,24 @@ FiskPay brings cryptocurrency payment integration to L2J servers, enabling seaml
 
 ## Introduction
 
-This repository is a customized integration project for L2JMobius, adding blockchain payment functionality through FiskPay. It enables in-game transactions (deposits and withdrawals) linked to Ethereum wallet addresses, allowing players to seamlessly interact with blockchain-based services on the Polygon Network.
+This repository is a customized integration project for Lineage 2 Java emulators, adding blockchain payment functionality through FiskPay. It enables in-game transactions (deposits and withdrawals) linked to Ethereum wallet addresses, allowing players to seamlessly interact with blockchain-based services on the Polygon Network.
 
 
 ## Features
 
-- **Blockchain Integration**: Connects L2JMobius with the FiskPay blockchain service for handling deposits and withdrawals.
+- **Blockchain Integration**: Connects Lineage 2 Java emulators with the FiskPay blockchain service for handling deposits and withdrawals.
 - **Account Linking**: Allows players to link/unlink their Ethereum wallet addresses with their in-game accounts.
 - **Game Server Communication**: Uses asynchronous communication to handle requests between the Login Server and Game Servers.
 - **Secure Transactions**: Implements security checks such as wallet ownership verification and anti-exploit measures.
 - **Real-time Transaction Verification**: Ensures instant validation of blockchain transactions, reducing wait times and preventing fraud.
-- **Automated Delivery System**: Delivers in-game items or currency automatically upon successful blockchain transaction confirmation.
+- **Automated Delivery System**: Delivers in-game currency automatically upon successful blockchain transaction confirmation.
 - **Support for Multiple Cryptocurrencies**: Enables transactions using various cryptocurrencies, providing flexibility for administrators.
 - **User-friendly Payment Interface**: Offers a seamless and intuitive payment experience, simplifying blockchain transactions for users.
 
 
 ## Requirements
 
-- L2JMobius source files
+- Lineage 2 Java emulator source files
 - FiskPay blockchain service credentials
 - Basic knowledge of how to apply patches using Java
 - Web3 Wallet (i.e. MetaMask)
@@ -41,19 +41,19 @@ This repository is a customized integration project for L2JMobius, adding blockc
 
 ### 1. Copy Java Files
 
-Copy all `.java` files from the `l2jmobius` folder in this repository to your local L2JMobius project.
+From the approperiate folder in this repository, copy all `.java` files to your local L2J project.
 
 ### 2. Apply Patch Files
 
-Apply all `.java.diff` patch files from the `l2jmobius` folders in this repository to your L2JMobius project.
+Apply all `.java.diff` patch files to your L2J project.
 
 ### 3. Update your MySQL Database
 
-Update your Login Server database using the files located in this repository `l2jmobius/dist/db_installer/sql/` folder.
+Apply the SQL updates to your Login Server database.
 
-### 3. Register your L2J server to the service
+### 3. Register your L2J emulator to the service
 
-Register your L2J server by obtaining service credentials at:
+Register your server at:
 
 [https://l2.fiskpay.com/](https://l2.fiskpay.com/)
 
@@ -63,10 +63,9 @@ To register, use your desired password and your Login Server remote IPv4 address
 
 Open `FiskPayLoginClient.java` and add your credentials to the appropriate constants. Then, if needed, open `GSMethods.java` and replace the reward item id.
 
-### 5. Complile your local L2JMobius project
+### 5. Compile & Launch
 
-Compile your local L2JMobius project by following the instuctions given at:
-[https://l2jmobius.org/forum/index.php?topic=3231.0/](https://l2jmobius.org/forum/index.php?topic=3231.0/)
+Build and launch your L2J server, depending on your project.
 
 ### 6. Access your blockchain panel
 
