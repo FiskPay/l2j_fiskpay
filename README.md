@@ -41,7 +41,7 @@ This repository is a customized integration project for Lineage 2 Java emulators
 
 ### 1. Copy Java Files
 
-From the approperiate folder in this repository, copy all `.java` files to your local L2J project.
+Depending your Lineage 2 Java emulator, copy all files from the `emulators` directory to your local L2J project.
 
 ### 2. Apply Patch Files
 
