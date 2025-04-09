@@ -219,6 +219,11 @@ public class LSProcessor
         return LSMethods.finalizeWithdraw(srvId, character, refund, amount);
     }
     
+    public static void setReward(String srvId)
+    {
+        LSMethods.setReward(srvId);
+    }
+    
     public static void refundPlayers(String srvId)
     {
         LSMethods.refundPlayers(srvId);

@@ -385,6 +385,42 @@ public class LSMethods
         return sendRequestToGS(srvId, "isGameServerAvailable", new JSONArray());
     }
     
+    protected static void setReward(String srvId)
+    {
+        try (Connection con = DatabaseFactory.getConnection())
+        {
+            try (PreparedStatement ps = con.prepareStatement("SELECT reward_id FROM gameservers WHERE server_id = ? LIMIT 1;"))
+            {
+                ps.setInt(1, Integer.parseInt(srvId));
+
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        String rewardId = rs.getString("reward_id");
+
+                        sendRequestToGS(srvId, "setReward", new JSONArray().put(rewardId)).thenAccept((responseObject) ->
+                        {
+                            if (!(responseObject.has("data") && responseObject.getBoolean("data")))
+                            {
+                                LOGGER.log(Level.WARNING, "Failed to set Game Server reward. Server id: " + srvId);
+                
+                                if(responseObject.has("fail"))
+                                {
+                                    LOGGER.log(Level.WARNING, "Fail reason: " + responseObject.getString("fail"));
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+        }
+    }
+    
     protected static void updateGameServerBalance(String srvId)
     {
         sendRequestToGS(srvId, "fetchGameServerBalance", new JSONArray()).thenAccept((responseObject) ->
@@ -442,11 +478,21 @@ public class LSMethods
                                 if (!(finalizeObject.has("data") && finalizeObject.getBoolean("data")))
                                 {
                                     LOGGER.log(Level.WARNING, "Failed to refund player (finalize): " + character + " on server: " + srvId);
+
+                                    if(finalizeObject.has("fail"))
+                                    {
+                                        LOGGER.log(Level.WARNING, "Fail reason: " + finalizeObject.getString("fail"));
+                                    }
                                 }
                             }
                             else
                             {
                                 LOGGER.log(Level.WARNING, "Failed to refund player (add): " + character + " on server: " + srvId);
+
+                                if(addObject.has("fail"))
+                                {
+                                    LOGGER.log(Level.WARNING, "Fail reason: " + addObject.getString("fail"));
+                                }
                             }
                         });
                     }

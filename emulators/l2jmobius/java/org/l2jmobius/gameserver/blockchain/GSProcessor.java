@@ -79,6 +79,12 @@ public class GSProcessor
                 responseObject = GSMethods.isGameServerAvailable();
                 break;
             }
+            case "setReward":
+            {
+                String rewardId = info.getString(0);
+                responseObject = GSMethods.setReward(rewardId);
+                break;
+            }
             case "fetchGameServerBalance":
             {
                 responseObject = GSMethods.fetchGameServerBalance();

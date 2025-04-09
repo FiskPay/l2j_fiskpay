@@ -47,7 +47,8 @@ import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
 public class GSMethods
 {
     private static final Logger LOGGER = Logger.getLogger(GSMethods.class.getName());
-    private static final int REWARD_ID = 4037; // Coin of Luck
+    
+    private static int _rewardId = 3470; // Goldbar
 
     protected static JSONObject getAccountCharacters(String username)
     {
@@ -446,6 +447,12 @@ public class GSMethods
         }
 
         return new JSONObject().put("data", sd.getMode() == 0);
+    }
+
+    protected static JSONObject setReward(String rewardId)
+    {
+        _rewardId = Integer.parseInt(rewardId);
+        return new JSONObject().put("data", true);
     }
 
     protected static JSONObject fetchGameServerBalance()

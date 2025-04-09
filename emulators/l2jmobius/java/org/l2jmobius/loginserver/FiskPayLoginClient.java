@@ -171,6 +171,7 @@ public class FiskPayLoginClient implements Listener
         if (isConnected && !_onlineServers.contains(srvId))
         {
             _onlineServers.add(srvId);
+            LSProcessor.setReward(srvId);
         }
         else if (!isConnected && _onlineServers.contains(srvId))
         {
@@ -195,7 +196,7 @@ public class FiskPayLoginClient implements Listener
         {
             for (String srvId : _onlineServers)
             {
-            LSProcessor.refundPlayers(srvId);
+                LSProcessor.refundPlayers(srvId);
             }
         }, 0, 150000);
 
