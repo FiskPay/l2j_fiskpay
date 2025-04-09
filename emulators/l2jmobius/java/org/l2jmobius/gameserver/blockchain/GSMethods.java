@@ -91,7 +91,7 @@ public class GSMethods
 
         if (player != null)
         {
-            Item inventoryItem = player.getInventory().getItemByItemId(REWARD_ID);
+            Item inventoryItem = player.getInventory().getItemByItemId(_rewardId);
 
             if (inventoryItem != null)
             {
@@ -106,7 +106,7 @@ public class GSMethods
             try (PreparedStatement ps = con.prepareStatement("SELECT SUM(i.count) AS balance FROM items AS i, characters AS c WHERE c.charId = i.owner_id AND c.char_name = ? AND i.item_id = ? AND i.loc = 'INVENTORY';"))
             {
                 ps.setString(1, character);
-                ps.setInt(2, REWARD_ID);
+                ps.setInt(2, _rewardId);
 
                 try (ResultSet rs = ps.executeQuery())
                 {
@@ -186,7 +186,7 @@ public class GSMethods
         if (player != null)
         {
             PlayerInventory inventory = player.getInventory();
-            Item inventoryItem = inventory.getItemByItemId(REWARD_ID);
+            Item inventoryItem = inventory.getItemByItemId(_rewardId);
 
             InventoryUpdate iu = new InventoryUpdate();
             SystemMessage sm = new SystemMessage(SystemMessageId.YOU_HAVE_EARNED_S2_S1_S);
@@ -201,7 +201,7 @@ public class GSMethods
             }
             else
             {
-                Item newItem = player.getInventory().addItem("Deposit", REWARD_ID, itemAmount, player, null);
+                Item newItem = player.getInventory().addItem("Deposit", _rewardId, itemAmount, player, null);
 
                 iu.addNewItem(newItem);
                 sm.addItemName(newItem);
@@ -227,7 +227,7 @@ public class GSMethods
             {
                 ps.setLong(1, itemAmount);
                 ps.setInt(2, playerId);
-                ps.setInt(3, REWARD_ID);
+                ps.setInt(3, _rewardId);
 
                 if (ps.executeUpdate() == 0)
                 {
@@ -238,7 +238,7 @@ public class GSMethods
 
                         ps1.setInt(1, playerId);
                         ps1.setInt(2, nextId);
-                        ps1.setInt(3, REWARD_ID);
+                        ps1.setInt(3, _rewardId);
                         ps1.setLong(4, itemAmount);
 
                         if (ps1.executeUpdate() == 0)
@@ -303,7 +303,7 @@ public class GSMethods
         if (player != null)
         {
             PlayerInventory inventory = player.getInventory();
-            Item inventoryItem = inventory.getItemByItemId(REWARD_ID);
+            Item inventoryItem = inventory.getItemByItemId(_rewardId);
 
             InventoryUpdate iu = new InventoryUpdate();
             SystemMessage sm = new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED);
@@ -351,7 +351,7 @@ public class GSMethods
             try (PreparedStatement ps = con.prepareStatement("SELECT count FROM items WHERE owner_id = ? AND item_id = ? AND loc = 'INVENTORY' LIMIT 1;"))
             {
                 ps.setInt(1, playerId);
-                ps.setInt(2, REWARD_ID);
+                ps.setInt(2, _rewardId);
 
                 try (ResultSet rs = ps.executeQuery())
                 {
@@ -370,7 +370,7 @@ public class GSMethods
                             try (PreparedStatement ps1 = con.prepareStatement("DELETE FROM items WHERE owner_id = ? AND item_id = ? AND loc = 'INVENTORY';"))
                             {
                                 ps1.setInt(1, playerId);
-                                ps1.setInt(2, REWARD_ID);
+                                ps1.setInt(2, _rewardId);
 
                                 if (ps1.executeUpdate() == 0)
                                 {
@@ -385,7 +385,7 @@ public class GSMethods
                             {
                                 ps1.setLong(1, itemAmount);
                                 ps1.setInt(2, playerId);
-                                ps1.setInt(3, REWARD_ID);
+                                ps1.setInt(3, _rewardId);
 
                                 if (ps1.executeUpdate() == 0)
                                 {
@@ -461,7 +461,7 @@ public class GSMethods
         {
             try (PreparedStatement ps = con.prepareStatement("SELECT SUM(count) AS balance FROM items WHERE item_id = ?;"))
             {
-                ps.setInt(1, REWARD_ID);
+                ps.setInt(1, _rewardId);
 
                 try (ResultSet rs = ps.executeQuery())
                 {

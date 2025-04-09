@@ -163,7 +163,7 @@ public class FiskPayLoginClient implements Listener
 
     public void updateServers(int serverId, boolean isConnected)
     {        
-        return updateServers(Integer.toString(serverId), isConnected);
+        updateServers(Integer.toString(serverId), isConnected);
     }
     
     public void updateServers(String srvId, boolean isConnected)
