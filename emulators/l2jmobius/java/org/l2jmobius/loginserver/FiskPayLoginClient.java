@@ -50,15 +50,15 @@ public class FiskPayLoginClient implements Listener
     private Connector _connector;
     
     @Override
-    public void onLogDeposit(String txHash, String from, String symbol, String amount, String server, String character)
+    public void onLogDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
-        LSProcessor.logDeposit(txHash, from, symbol, amount, server, character).thenAccept((logResult) ->
+        LSProcessor.logDeposit(txHash, from, symbol, amount, srvId, character).thenAccept((logResult) ->
         {
             String nowDate = getDateTime();
             
             if (!logResult.has("fail"))
             {
-                BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(server) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
+                BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(srvId) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
             }
             else
             {
@@ -66,7 +66,7 @@ public class FiskPayLoginClient implements Listener
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash:   " + txHash);
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | From:     " + from);
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | To:       " + character);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(server));
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(srvId));
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("fail"));
@@ -77,14 +77,14 @@ public class FiskPayLoginClient implements Listener
     }
     
     @Override
-    public void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund)
+    public void onLogWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
     {
         String nowDate = getDateTime();
-        JSONObject logResult = LSProcessor.logWithdraw(txHash, to, symbol, amount, server, character, refund);
+        JSONObject logResult = LSProcessor.logWithdraw(txHash, to, symbol, amount, srvId, character, refund);
         
         if (!logResult.has("fail"))
         {
-            BLOCKCHAIN_LOGGER.info(nowDate + " | Withdrawal on " + getServerName(server) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
+            BLOCKCHAIN_LOGGER.info(nowDate + " | Withdrawal on " + getServerName(srvId) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
         }
         else
         {
@@ -92,7 +92,7 @@ public class FiskPayLoginClient implements Listener
             BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash:   " + txHash);
             BLOCKCHAIN_LOGGER.warning(nowDate + " | From:     " + character);
             BLOCKCHAIN_LOGGER.warning(nowDate + " | To:       " + to);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(server));
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(srvId));
             BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
             BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
             BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("fail"));
@@ -106,21 +106,21 @@ public class FiskPayLoginClient implements Listener
     {
         if (requestObject.has("id") && requestObject.get("id") instanceof String && requestObject.has("subject") && requestObject.get("subject") instanceof String && requestObject.has("data") && requestObject.get("data") instanceof JSONObject)
         {
-            String serverId = requestObject.getString("id");
+            String srvId = requestObject.getString("id");
             
-            if ("ls".equals(serverId)) // Request must be handled by the Login Server
+            if ("ls".equals(srvId)) // Request must be handled by the Login Server
             {
                 cb.resolve(LSProcessor.processLSRequest(requestObject)); // Proccess the request and send it to the FiskPay server
             }
-            else if (Pattern.matches("^([1-9]|[1-9][0-9]|1[01][0-9]|12[0-7])$", serverId)) // Forward the request to the appropriate Game Server. When a response is received from the Game Server, Login Server will handle it
+            else if (Pattern.matches("^([1-9]|[1-9][0-9]|1[01][0-9]|12[0-7])$", srvId)) // Forward the request to the appropriate Game Server. When a response is received from the Game Server, Login Server will handle it
             {
-                if (_onlineServers.contains(serverId))
+                if (_onlineServers.contains(srvId))
                 {
                     LSProcessor.processGSRequest(requestObject).thenAccept(cb::resolve); // Forward the request to the Game Server and send the response back to the FiskPay server
                 }
                 else
                 {
-                    cb.resolve(new JSONObject().put("fail", "Game server " + getServerName(serverId) + " is not available"));
+                    cb.resolve(new JSONObject().put("fail", "Game server " + getServerName(srvId) + " is not available"));
                 }
             }
             else
@@ -160,18 +160,21 @@ public class FiskPayLoginClient implements Listener
         LOGGER.warning(getClass().getSimpleName() + ": Connector error");
         LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
     }
-    
+
     public void updateServers(int serverId, boolean isConnected)
-    {
-        String id = Integer.toString(serverId);
-        
-        if (isConnected && !_onlineServers.contains(id))
+    {        
+        return updateServers(Integer.toString(serverId), isConnected);
+    }
+    
+    public void updateServers(String srvId, boolean isConnected)
+    {        
+        if (isConnected && !_onlineServers.contains(srvId))
         {
-            _onlineServers.add(id);
+            _onlineServers.add(srvId);
         }
-        else if (!isConnected && _onlineServers.contains(id))
+        else if (!isConnected && _onlineServers.contains(srvId))
         {
-            _onlineServers.remove(id);
+            _onlineServers.remove(srvId);
         }
         
         _connector.onlineServers(new JSONArray(_onlineServers));
@@ -190,7 +193,10 @@ public class FiskPayLoginClient implements Listener
 
         ThreadPool.scheduleAtFixedRate(() ->
         {
-            LSProcessor.refundPlayers();
+            for (String srvId : _onlineServers)
+            {
+            LSProcessor.refundPlayers(srvId);
+            }
         }, 0, 150000);
 
         ThreadPool.scheduleAtFixedRate(() ->
@@ -207,19 +213,18 @@ public class FiskPayLoginClient implements Listener
         private static final FiskPayLoginClient INSTANCE = new FiskPayLoginClient();
     }
     
-    private static String getServerName(String id)
+    private static String getServerName(String srvId)
     {        
-        return getServerName(Integer.parseInt(id));
+        return getServerName(Integer.parseInt(srvId));
     }
 
-    private static String getServerName(int id)
+    private static String getServerName(int serverId)
     {
-        
         GameServerTable gsTable = GameServerTable.getInstance();
         
         if (gsTable != null)
         {
-            return gsTable.getServerNameById(id);
+            return gsTable.getServerNameById(serverId);
         }
         
         return "Unknown";
