@@ -414,20 +414,21 @@ public class LSMethods
         });
     }
     
-    protected static void refundPlayers()
+    protected static void refundPlayers(String srvId)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
-            try (PreparedStatement ps = con.prepareStatement("SELECT * FROM fiskpay_temporary WHERE refund < ?;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT * FROM fiskpay_temporary WHERE server_id = ? AND refund < ?;"))
             {
                 int timestamp = (int) (System.currentTimeMillis() / 1000);
-                ps.setInt(1, timestamp);
+
+                ps.setInt(1, Integer.parseInt(srvId));
+                ps.setInt(2, timestamp);
                 
                 try (ResultSet rs = ps.executeQuery())
                 {
                     while (rs.next())
                     {
-                        String srvId = rs.getString("server_id");
                         String character = rs.getString("character_name");
                         String amount = rs.getString("amount");
                         String refund = rs.getString("refund");
@@ -527,6 +528,6 @@ public class LSMethods
         
         gsThread.sendFiskPayRequest(uniqueID, requestString); // Forward the request
         
-        return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server timed out"), 10, TimeUnit.SECONDS);
+        return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server " + srvId + " with subject " + subject + " timed out"), 10, TimeUnit.SECONDS);
     }
 }
