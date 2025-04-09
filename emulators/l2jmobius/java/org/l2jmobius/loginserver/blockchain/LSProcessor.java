@@ -219,13 +219,13 @@ public class LSProcessor
         return LSMethods.finalizeWithdraw(srvId, character, refund, amount);
     }
     
-    public static void refundPlayers()
+    public static void refundPlayers(String srvId)
     {
-        LSMethods.refundPlayers();
+        LSMethods.refundPlayers(srvId);
     }
         
-    public static void updateGameServerBalance(String serverId)
+    public static void updateGameServerBalance(String srvId)
     {
-        LSMethods.updateGameServerBalance(serverId);
+        LSMethods.updateGameServerBalance(srvId);
     }
 }
