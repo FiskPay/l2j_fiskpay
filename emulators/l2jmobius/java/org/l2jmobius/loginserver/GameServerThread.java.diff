@@ -1,6 +1,12 @@
 --- GameServerThread.java
 +++ GameServerThread.java
-@@ -17,6 +17,7 @@
+@@ -30,12 +30,14 @@
++import org.l2jmobius.Config;
+ import org.l2jmobius.commons.crypt.NewCrypt;
+ import org.l2jmobius.commons.network.base.BaseWritablePacket;
+ import org.l2jmobius.commons.util.CommonUtil;
+ import org.l2jmobius.loginserver.GameServerTable.GameServerInfo;
+ import org.l2jmobius.loginserver.network.GameServerPacketHandler;
  import org.l2jmobius.loginserver.network.GameServerPacketHandler.GameServerState;
  import org.l2jmobius.loginserver.network.ScrambledKeyPair;
  import org.l2jmobius.loginserver.network.loginserverpackets.ChangePasswordResponse;
@@ -8,7 +14,7 @@
  import org.l2jmobius.loginserver.network.loginserverpackets.InitLS;
  import org.l2jmobius.loginserver.network.loginserverpackets.KickPlayer;
  import org.l2jmobius.loginserver.network.loginserverpackets.LoginServerFail;
-@@ -132,13 +133,15 @@
+@@ -131,13 +134,18 @@
 		finally
 		{
 			if (isAuthed())
@@ -19,12 +25,15 @@
 				}
 				LOGGER.info("Server [" + getServerId() + "] " + GameServerTable.getInstance().getServerNameById(getServerId()) + " is now set as disconnected.");
 +
-+				FiskPayLoginClient.getInstance().updateServers(getServerId(),false);
++				if(Config.BLOCKCHAIN_ENABLE)
++				{
++					FiskPayLoginClient.getInstance().updateServers(getServerId(),false);
++				}
 			}
 			LoginServer.getInstance().getGameServerListener().removeGameServer(this);
 			LoginServer.getInstance().getGameServerListener().removeFloodProtection(_connectionIp);
 		}
-@@ -168,9 +171,11 @@
+@@ -164,9 +171,14 @@
 	public void attachGameServerInfo(GameServerInfo gsi, int port, String[] hosts, int maxPlayers)
 	{
 		setGameServerInfo(gsi);
@@ -34,9 +43,12 @@
 		gsi.setMaxPlayers(maxPlayers);
 		gsi.setAuthed(true);
 +
-+		FiskPayLoginClient.getInstance().updateServers(getServerId(),true);
++		if(Config.BLOCKCHAIN_ENABLE)
++		{
++			FiskPayLoginClient.getInstance().updateServers(getServerId(),true);
++		}
 	}
-@@ -288,9 +293,14 @@ 
+@@ -281,9 +293,14 @@ 
  	public void changePasswordResponse(String characterName, String msgToSend)
  	{
  		sendPacket(new ChangePasswordResponse(characterName, msgToSend));

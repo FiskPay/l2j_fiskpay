@@ -1,13 +1,16 @@
 --- LoginServer.java
 +++ LoginServer.java
-@@ -114,12 +114,14 @@
+@@ -115,12 +115,17 @@
 		if (Config.LOGIN_SERVER_SCHEDULE_RESTART)
 		{
 			LOGGER.info("Scheduled LS restart after " + Config.LOGIN_SERVER_SCHEDULE_RESTART_TIME + " hours.");
 			ThreadPool.schedule(() -> shutdown(true), Config.LOGIN_SERVER_SCHEDULE_RESTART_TIME * 3600000);
 		}
 		
-+		FiskPayLoginClient.getInstance();
++		if(Config.BLOCKCHAIN_ENABLE)
++		{
++			FiskPayLoginClient.getInstance();
++		}
 +
 		try
 		{

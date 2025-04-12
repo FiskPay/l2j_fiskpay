@@ -27,6 +27,7 @@ import com.fiskpay.l2.Listener;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import org.l2jmobius.Config;
 import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.loginserver.blockchain.LSProcessor;
 
@@ -41,9 +42,9 @@ public class FiskPayLoginClient implements Listener
     private static final Logger LOGGER = Logger.getLogger(FiskPayLoginClient.class.getName());
     private static final Logger BLOCKCHAIN_LOGGER = Logger.getLogger("blockchain");
     
-    private static final String SYMBOL = "USDT"; // USDT or TOS
-    private static final String WALLET = "WALLET_ADDRESS_HERE"; // Add your public address here
-    private static final String PASSWORD = "SUPER_SECRET_PASSWORD"; // Register here: https://l2.fiskpay.com/
+    private static final String SYMBOL = Config.BLOCKCHAIN_SYMBOL;
+    private static final String WALLET = Config.BLOCKCHAIN_WALLET;  
+    private static final String PASSWORD = Config.BLOCKCHAIN_PASSWORD;
     
     private static final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
     

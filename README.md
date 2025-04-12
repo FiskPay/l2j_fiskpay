@@ -49,7 +49,7 @@ Apply all `.java.diff` patch files to your L2J project.
 
 ### 3. Update your MySQL Database
 
-Apply the SQL updates to your Login Server database.
+Apply the SQL updates to your Login Server database. If needed, modify the reward item id in your database's `gameservers` table
 
 ### 3. Register your L2J emulator to the service
 
@@ -59,9 +59,9 @@ Register your server at:
 
 To register, use your desired password and your Login Server remote IPv4 address.
 
-### 4. Edit FiskPayLoginClient.java and GSMethods.java files
+### 4. Enable blockchain support
 
-Open `FiskPayLoginClient.java` and add your credentials to the appropriate constants. Then, if needed, open `GSMethods.java` and replace the reward item id.
+Open your Login Server `Blockchain` config file, and add your credentials.
 
 ### 5. Compile & Launch
 
