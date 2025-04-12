@@ -40,15 +40,6 @@ public class Connector
     {
         _listener = listener;
 
-        try
-        {
-            Thread.sleep(10000); // This delay is used to make sure that the previous connection is properly closed when restarting the Login Server.
-        }
-        catch (InterruptedException e)
-        {
-            Thread.currentThread().interrupt();
-        }
-
         try {
             _socket = IO.socket("wss://ds.fiskpay.com:42099");
 

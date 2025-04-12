@@ -133,8 +133,8 @@ public class FiskPayLoginClient implements Listener
     @Override
     public void onConnect()
     {
-        LOGGER.info(getClass().getSimpleName() + ": Connection to FiskPay established");
-        LOGGER.info(getClass().getSimpleName() + ": Signing in....");
+        LOGGER.info(getClass().getSimpleName() + ": Connection established");
+        LOGGER.info(getClass().getSimpleName() + ": Signing in...");
         
         _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept((message) ->
         {
@@ -151,7 +151,7 @@ public class FiskPayLoginClient implements Listener
     @Override
     public void onDisconnect()
     {
-        LOGGER.warning(getClass().getSimpleName() + ": FiskPay temporary unavailable");
+        LOGGER.warning(getClass().getSimpleName() + ": Service temporary unavailable");
     }
     
     @Override
@@ -160,14 +160,14 @@ public class FiskPayLoginClient implements Listener
         LOGGER.warning(getClass().getSimpleName() + ": Connector error");
         LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
     }
-
+    
     public void updateServers(int serverId, boolean isConnected)
-    {        
+    {
         updateServers(Integer.toString(serverId), isConnected);
     }
     
     public void updateServers(String srvId, boolean isConnected)
-    {        
+    {
         if (isConnected && !_onlineServers.contains(srvId))
         {
             _onlineServers.add(srvId);
@@ -188,10 +188,33 @@ public class FiskPayLoginClient implements Listener
     
     private FiskPayLoginClient()
     {
-        LOGGER.info(getClass().getSimpleName() + ": Connecting to FiskPay...");
+        /*
+         * This blocking delay is used to wait for any previous connections to close before attempting a new connection.
+         * If you remove this blocking delay, there is a chance that you get a "Client xxxxxxxxxxxxxxxxxxxx is already connected to the service" error when restarting your Login Server and fail to login.
+         */
+        
+        for (int i = 5; i > 0; i--)
+        {
+            LOGGER.info(getClass().getSimpleName() + ": Connencting in " + i);
+            
+            try
+            {
+                Thread.sleep(2000);
+            }
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+
+                LOGGER.warning(getClass().getSimpleName() + ": Thread interrupted");
+                LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+                break;
+            }
+        }
+        
+        LOGGER.info(getClass().getSimpleName() + ": Connecting...");
         
         _connector = new Connector(this);
-
+        
         ThreadPool.scheduleAtFixedRate(() ->
         {
             for (String srvId : _onlineServers)
@@ -199,7 +222,7 @@ public class FiskPayLoginClient implements Listener
                 LSProcessor.refundPlayers(srvId);
             }
         }, 0, 150000);
-
+        
         ThreadPool.scheduleAtFixedRate(() ->
         {
             for (String srvId : _onlineServers)
@@ -215,10 +238,10 @@ public class FiskPayLoginClient implements Listener
     }
     
     private static String getServerName(String srvId)
-    {        
+    {
         return getServerName(Integer.parseInt(srvId));
     }
-
+    
     private static String getServerName(int serverId)
     {
         GameServerTable gsTable = GameServerTable.getInstance();
