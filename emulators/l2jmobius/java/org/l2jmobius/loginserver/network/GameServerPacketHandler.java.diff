@@ -8,7 +8,8 @@
  import org.l2jmobius.loginserver.network.gameserverpackets.GameServerAuth;
  import org.l2jmobius.loginserver.network.gameserverpackets.PlayerAuthRequest;
  import org.l2jmobius.loginserver.network.gameserverpackets.PlayerInGame;
-@@ -104,6 +105,11 @@
+@@ -143,6 +143,11 @@
+					case 0x0B:
  					{
  						new ChangePassword(data);
  						break;
@@ -19,4 +20,3 @@
 +						break;
  					}
  					default:
- 					{

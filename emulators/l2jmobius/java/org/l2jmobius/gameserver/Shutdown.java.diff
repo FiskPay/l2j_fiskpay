@@ -1,17 +1,28 @@
 --- Shutdown.java
 +++ Shutdown.java
-@@ -241,6 +241,12 @@
-         _shutdownMode = mode;
-     }
- 
-+    /**
-+     * Get shutdown mode.
-+     * @return the shutdown mode
-+     */
-+    public int getMode()
-+    {
-+        return _shutdownMode;
-+    }
- 
-     /**
-      * Set shutdown mode to ABORT.
+@@ -251,16 +241,25 @@
+	/**
+	 * Set the shutdown mode.
+	 * @param mode what mode shall be set
+	 */
+	private void setMode(int mode)
+	{
+		_shutdownMode = mode;
+	}
+	
++	/**
++	 * Get shutdown mode to ABORT.
++	 * @return the shutdown mode
++	 */
++	public int getMode()
++	{
++		return _shutdownMode;
++	}
++
+	/**
+	 * Set shutdown mode to ABORT.
+	 */
+	private void abort()
+	{
+		_shutdownMode = ABORT;
+	}

@@ -1,6 +1,6 @@
 --- LoginServerThread.java
 +++ LoginServerThread.java
-@@ -55,6 +55,7 @@
+@@ -57,6 +57,7 @@
  import org.l2jmobius.gameserver.network.loginserverpackets.game.ChangeAccessLevel;
  import org.l2jmobius.gameserver.network.loginserverpackets.game.ChangePassword;
 +import org.l2jmobius.gameserver.network.loginserverpackets.game.FiskPayResponseSend;
@@ -15,7 +15,9 @@
  import org.l2jmobius.gameserver.network.loginserverpackets.login.InitLS;
  import org.l2jmobius.gameserver.network.loginserverpackets.login.KickPlayer;
  import org.l2jmobius.gameserver.network.loginserverpackets.login.LoginServerFail;
-@@ -322,6 +324,11 @@
+@@ -329,6 +331,11 @@
+						case 0x06:
+						{
  							new ChangePasswordResponse(incoming);
  							break;
  						}
@@ -25,9 +27,8 @@
 +							break;
 +						}
  					}
- 				}
- 			}
-@@ -594,6 +601,11 @@
+@@ -660,6 +667,11 @@
+	public void sendChangePassword(String accountName, String charName, String oldpass, String newpass)
  	{
  		sendPacket(new ChangePassword(accountName, charName, oldpass, newpass));
  	}

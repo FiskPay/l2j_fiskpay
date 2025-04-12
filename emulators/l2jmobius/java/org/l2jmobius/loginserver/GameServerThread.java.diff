@@ -8,27 +8,35 @@
  import org.l2jmobius.loginserver.network.loginserverpackets.InitLS;
  import org.l2jmobius.loginserver.network.loginserverpackets.KickPlayer;
  import org.l2jmobius.loginserver.network.loginserverpackets.LoginServerFail;
-@@ -105,6 +106,8 @@
- 				LOGGER.info("Server [" + getServerId() + "] " + GameServerTable.getInstance().getServerNameById(getServerId()) + " is now set as disconnected.");
-+ 
-+ 				FiskPayLoginClient.getInstance().updateServers(getServerId(),false);
+@@ -132,13 +133,15 @@
+		finally
+		{
+			if (isAuthed())
+			{
+				if (_gsi != null)
+				{
+					_gsi.setDown();
+				}
+				LOGGER.info("Server [" + getServerId() + "] " + GameServerTable.getInstance().getServerNameById(getServerId()) + " is now set as disconnected.");
++
++				FiskPayLoginClient.getInstance().updateServers(getServerId(),false);
+			}
+			LoginServer.getInstance().getGameServerListener().removeGameServer(this);
+			LoginServer.getInstance().getGameServerListener().removeFloodProtection(_connectionIp);
 		}
-		LoginServer.getInstance().getGameServerListener().removeGameServer(this);
- 		LoginServer.getInstance().getGameServerListener().removeFloodProtection(_connectionIp);
- 	}
- 
-@@ -156,6 +159,8 @@
- 		gsi.setAuthed(true);
-+ 
-+ 		FiskPayLoginClient.getInstance().updateServers(getServerId(),true);
+@@ -168,9 +171,11 @@
+	public void attachGameServerInfo(GameServerInfo gsi, int port, String[] hosts, int maxPlayers)
+	{
+		setGameServerInfo(gsi);
+		gsi.setGameServerThread(this);
+		gsi.setPort(port);
+		setGameHosts(hosts);
+		gsi.setMaxPlayers(maxPlayers);
+		gsi.setAuthed(true);
++
++		FiskPayLoginClient.getInstance().updateServers(getServerId(),true);
 	}
-
- 	public void forceClose(int reason)
- 	{
- 		sendPacket(new LoginServerFail(reason));
-@@ -254,6 +259,11 @@
- 	}
- 
+@@ -288,9 +293,14 @@ 
  	public void changePasswordResponse(String characterName, String msgToSend)
  	{
  		sendPacket(new ChangePasswordResponse(characterName, msgToSend));
@@ -41,3 +49,5 @@
  
  	/**
  	 * @param hosts The gameHost to set.
+	 */
+	public void setGameHosts(String[] hosts)

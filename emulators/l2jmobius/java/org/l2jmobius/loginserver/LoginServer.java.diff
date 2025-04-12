@@ -1,28 +1,17 @@
 --- LoginServer.java
 +++ LoginServer.java
-@@ -49,6 +49,7 @@
- import org.l2jmobius.commons.threads.ThreadPool;
- import org.l2jmobius.commons.util.PropertiesParser;
- import org.l2jmobius.gameserver.network.loginserverpackets.game.ServerStatus;
-+import org.l2jmobius.loginserver.FiskPayLoginClient;
- import org.l2jmobius.loginserver.network.LoginClient;
- import org.l2jmobius.loginserver.network.LoginPacketHandler;
- import org.l2jmobius.loginserver.ui.Gui;
-@@ -107,6 +109,8 @@
-         try
-         {
-             _gameServerListener = new GameServerListener();
-             _gameServerListener.start();
-             LOGGER.info("Listening for GameServers on " + Config.GAME_SERVER_LOGIN_HOST + ":" + Config.GAME_SERVER_LOGIN_PORT);
-         }
-         catch (IOException e)
-         {
-             LOGGER.log(Level.SEVERE, "FATAL: Failed to start the Game Server Listener. Reason: " + e.getMessage(), e);
-             System.exit(1);
-         }
-+        
-+        FiskPayLoginClient.getInstance();
-         
-         new ConnectionManager<>(new InetSocketAddress(Config.LOGIN_BIND_ADDRESS, Config.PORT_LOGIN), LoginClient::new, new LoginPacketHandler());
-         LOGGER.info(getClass().getSimpleName() + ": is now listening on: " + Config.LOGIN_BIND_ADDRESS + ":" + Config.PORT_LOGIN);
-     }
+@@ -114,12 +114,14 @@
+		if (Config.LOGIN_SERVER_SCHEDULE_RESTART)
+		{
+			LOGGER.info("Scheduled LS restart after " + Config.LOGIN_SERVER_SCHEDULE_RESTART_TIME + " hours.");
+			ThreadPool.schedule(() -> shutdown(true), Config.LOGIN_SERVER_SCHEDULE_RESTART_TIME * 3600000);
+		}
+		
++		FiskPayLoginClient.getInstance();
++
+		try
+		{
+			_gameServerListener = new GameServerListener();
+			_gameServerListener.start();
+			LOGGER.info("Listening for GameServers on " + Config.GAME_SERVER_LOGIN_HOST + ":" + Config.GAME_SERVER_LOGIN_PORT);
+		}
