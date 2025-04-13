@@ -41,7 +41,20 @@ public class Connector
         _listener = listener;
 
         try {
-            _socket = IO.socket("wss://ds.fiskpay.com:42099");
+
+            IO.Options socketOptions = new IO.Options();
+
+            // Transport Protocol Settings
+            socketOptions.transports = new String[] { "websocket" };
+            socketOptions.upgrade = false;
+
+            // Reconnection Strategy
+            socketOptions.reconnection = true;
+            socketOptions.reconnectionDelay = 5000; // in milliseconds
+            socketOptions.reconnectionAttempts = Integer.MAX_VALUE;
+            socketOptions.randomizationFactor = 0.5;
+
+            _socket = IO.socket("wss://ds.fiskpay.com:42099", socketOptions);
 
             _socket.on("logDeposit", (args) -> 
             {
