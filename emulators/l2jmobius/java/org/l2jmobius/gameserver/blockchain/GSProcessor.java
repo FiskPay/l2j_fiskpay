@@ -99,4 +99,9 @@ public class GSProcessor
 
         return responseObject.toString();
     }
+
+    public static int getRewardId(){
+
+        return GSMethods.getRewardId();
+    }
 }

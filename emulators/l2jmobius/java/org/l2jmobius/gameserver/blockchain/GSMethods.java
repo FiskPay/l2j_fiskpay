@@ -35,6 +35,7 @@ import org.json.JSONObject;
 import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.Shutdown;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
+import org.l2jmobius.gameserver.data.xml.ItemData;
 import org.l2jmobius.gameserver.instancemanager.IdManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.World;
@@ -48,7 +49,7 @@ public class GSMethods
 {
     private static final Logger LOGGER = Logger.getLogger(GSMethods.class.getName());
     
-    private static int _rewardId = 3470; // Goldbar
+    private static int _rewardId = Integer.MAX_VALUE;
 
     protected static JSONObject getAccountCharacters(String username)
     {
@@ -173,6 +174,11 @@ public class GSMethods
 
     protected static JSONObject addToCharacter(String character, String amount)
     {
+        if (_rewardId == Integer.MAX_VALUE)
+        {
+            return new JSONObject().put("fail", "Blockchain item not set");
+        }
+
         int playerId = CharInfoTable.getInstance().getIdByName(character);
 
         if (playerId == -1)
@@ -290,6 +296,11 @@ public class GSMethods
 
     protected static JSONObject removeFromCharacter(String character, String amount)
     {
+        if (_rewardId == Integer.MAX_VALUE)
+        {
+            return new JSONObject().put("fail", "Blockchain item not set");
+        }
+
         int playerId = CharInfoTable.getInstance().getIdByName(character);
 
         if (playerId == -1)
@@ -451,8 +462,22 @@ public class GSMethods
 
     protected static JSONObject setReward(String rewardId)
     {
-        _rewardId = Integer.parseInt(rewardId);
+
+        int itemId = Integer.parseInt(rewardId);
+
+		if (ItemData.getInstance().getTemplate(itemId) == null)
+		{
+			return new JSONObject().put("fail", "Blockchain item does not exist");
+		}
+
+        _rewardId = itemId;
+
         return new JSONObject().put("data", true);
+    }
+
+    protected static int getRewardId()
+    {
+        return _rewardId;
     }
 
     protected static JSONObject fetchGameServerBalance()

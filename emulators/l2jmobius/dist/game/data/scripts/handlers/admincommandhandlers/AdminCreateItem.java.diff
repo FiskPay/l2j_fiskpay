@@ -1,0 +1,45 @@
+--- AdminCreateItem.java
++++ AdminCreateItem.java
+@@ -21,7 +21,8 @@
+ package handlers.admincommandhandlers;
+
+ import java.util.StringTokenizer;
+
++import org.l2jmobius.gameserver.blockchain.GSProcessor;
+ import org.l2jmobius.gameserver.data.xml.ItemData;
+ import org.l2jmobius.gameserver.handler.IAdminCommandHandler;
+ import org.l2jmobius.gameserver.model.World;
+@@ -184,8 +185,15 @@
+			if ((numval > 10) && !template.isStackable())
+			{
+				BuilderUtil.sendSysMessage(activeChar, "This item does not stack - Creation aborted.");
+				return false;
+			}
++            
++			if(GSProcessor.getRewardId() < Integer.MAX_VALUE && GSProcessor.getRewardId() == idval)
++			{
++				BuilderUtil.sendSysMessage(activeChar, "Blockchain item(s) can not be manualy created.");
++				return false;
++			}
++
+			for (Player onlinePlayer : World.getInstance().getPlayers())
+			{
+				if ((activeChar != onlinePlayer) && onlinePlayer.isOnline() && ((onlinePlayer.getClient() != null) && !onlinePlayer.getClient().isDetached()))
+@@ -217,11 +225,15 @@
+		if ((num > 10) && !template.isStackable())
+		{
+			BuilderUtil.sendSysMessage(activeChar, "This item does not stack - Creation aborted.");
+			return;
+		}
++		
++		if(GSProcessor.getRewardId() < Integer.MAX_VALUE && GSProcessor.getRewardId() == id)
++		{
++			BuilderUtil.sendSysMessage(activeChar, "Blockchain item(s) can not be manualy created.");
++			return;
++		}
+		
+		target.getInventory().addItem("Admin", id, num, target, activeChar);
+		if (activeChar != target)
+		{
+			target.sendMessage("Admin spawned " + num + " " + template.getName() + " in your inventory.");
+		}
