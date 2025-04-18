@@ -123,10 +123,6 @@ public class LSMethods
                         databasePassword = rs.getString("password");
                         databaseWallet = rs.getString("wallet_address");
                     }
-                    else
-                    {
-                        return new JSONObject().put("fail", "Username - password mismatch");
-                    }
                 }
             }
             
