@@ -266,7 +266,6 @@ public class FiskPayLoginClient implements Listener
         int minute = currentDate.get(Calendar.MINUTE);
         int second = currentDate.get(Calendar.SECOND);
         
-        // Format the date and time similar to the JS version
         String datetime = String.format("%02d/%02d/%d @ %02d:%02d:%02d", day, month, year, hour, minute, second);
         
         return datetime;

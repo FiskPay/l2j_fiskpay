@@ -4,11 +4,11 @@
     <classpathentry kind="src" path="src"/>
 
     <!-- JAR Dependencies -->
-    <classpathentry kind="lib" path="lib/socket.io-client-2.1.1.jar" sourcepath="lib/socket.io-client-2.1.1-sources.jar"/>
+    <classpathentry kind="lib" path="lib/socket.io-client-2.1.2.jar" sourcepath="lib/socket.io-client-2.1.2-sources.jar"/>
     <classpathentry kind="lib" path="lib/engine.io-client-2.1.0.jar" sourcepath="lib/engine.io-client-2.1.0-sources.jar"/>
     <classpathentry kind="lib" path="lib/json-20250107.jar" sourcepath="lib/json-20250107-sources.jar"/>
     <classpathentry kind="lib" path="lib/okhttp-3.12.12.jar" sourcepath="lib/okhttp-3.12.12-sources.jar"/>
-    <classpathentry kind="lib" path="lib/okio-1.14.0.jar" sourcepath="lib/okio-1.14.0-sources.jar"/>
+    <classpathentry kind="lib" path="lib/okio-3.11.0.jar" sourcepath="lib/okio-3.11.0-sources.jar"/>
 
     <!-- Output folder -->
     <classpathentry kind="output" path="build"/>
