@@ -87,12 +87,12 @@ public class Connector
                 }
             });
 
-            _socket.on("connect", (_) ->
+            _socket.on("connect", (i) ->
             {
                 _listener.onConnect();
             });
 
-            _socket.on("disconnect", (_) ->
+            _socket.on("disconnect", (i) ->
             {
                 _listener.onDisconnect();
             });

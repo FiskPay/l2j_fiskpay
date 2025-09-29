@@ -103,7 +103,7 @@ public class LSMethods
         }
     }
     
-    protected static JSONObject addAccount(String username, String password, String walletAddress)
+    protected static JSONObject linkAccount(String username, String password, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection();)
         {
@@ -146,17 +146,17 @@ public class LSMethods
                     return new JSONObject().put("data", true);
                 }
                 
-                return new JSONObject().put("fail", "Adding wallet address to account failed");
+                return new JSONObject().put("fail", "Linking wallet address to account failed");
             }
         }
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "addAccount SQL error");
+            return new JSONObject().put("fail", "linkAccount SQL error");
         }
     }
     
-    protected static JSONObject removeAccount(String username, String password, String walletAddress)
+    protected static JSONObject unlinkAccount(String username, String password, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -203,13 +203,13 @@ public class LSMethods
                     return new JSONObject().put("data", true);
                 }
                 
-                return new JSONObject().put("fail", "Removing wallet address from account failed");
+                return new JSONObject().put("fail", "Unlinking wallet address from account failed");
             }
         }
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "removeAccount SQL error");
+            return new JSONObject().put("fail", "unlinkAccount SQL error");
         }
     }
     

@@ -54,27 +54,27 @@ public class LSProcessor
                     return new JSONObject().put("fail", "Improper walletAddress");
                 }
                 
-                return LSMethods.getAccounts(walletAddress); // Get accounts from Login Server database
+                return LSMethods.getAccounts(walletAddress); // Get wallet accounts from Login Server database
             }
             case "getClientBal":
             {
                 return LSMethods.getClientBalance(); // Get total balance from all Game Servers
             }
-            case "addAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
+            case "linkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {
                 String username = data.getString("username");
                 String password = data.getString("password");
                 String walletAddress = data.getString("walletAddress");
                 
-                return LSMethods.addAccount(username, password, walletAddress); // Links the account to the wallet address
+                return LSMethods.linkAccount(username, password, walletAddress); // Links the account to the wallet address
             }
-            case "removeAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
+            case "unlinkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {
                 String username = data.getString("username");
                 String password = data.getString("password");
                 String walletAddress = data.getString("walletAddress");
                 
-                return LSMethods.removeAccount(username, password, walletAddress); // Unlinks the account from the wallet address
+                return LSMethods.unlinkAccount(username, password, walletAddress); // Unlinks the account from the wallet address
             }
             default:
             {

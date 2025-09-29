@@ -26,7 +26,7 @@
 		{
 +			final PropertiesParser blockchainConfig = new PropertiesParser(BLOCKCHAIN_CONFIG_FILE);
 +			BLOCKCHAIN_ENABLE = blockchainConfig.getBoolean("Enable", false);
-+			BLOCKCHAIN_SYMBOL = blockchainConfig.getString("Symbol", "USD");
++			BLOCKCHAIN_SYMBOL = blockchainConfig.getString("Symbol", "USDT");
 +			BLOCKCHAIN_WALLET = blockchainConfig.getString("Wallet", "0x0000000000000000000000000000000000000000");
 +			BLOCKCHAIN_PASSWORD = blockchainConfig.getString("Password", ""); 
 +
