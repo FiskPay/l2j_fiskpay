@@ -33,12 +33,12 @@ public class FiskPayRequestReceive extends BaseReadablePacket
         super(decrypt);
         readByte(); // Packet id, it is already processed.
         
-        int requestId = readInt(); // Read request ID
-        String requestString = readString(); // Read Login Server request data
+        final int requestId = readInt(); // Read request ID
+        final String requestString = readString(); // Read Login Server request data
 
         ThreadPool.execute(() ->
         {
-            String responseString = GSProcessor.processRequest(requestString); // Create a response depending on the Login Server request
+            final String responseString = GSProcessor.processRequest(requestString); // Create a response depending on the Login Server request
             LoginServerThread.getInstance().sendFiskPayResponse(requestId, responseString); // Send response back to the Login Server
         });
     }

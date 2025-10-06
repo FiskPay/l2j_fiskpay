@@ -55,7 +55,7 @@ public class LSMethods
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
-            JSONArray accounts = new JSONArray();
+            final JSONArray accounts = new JSONArray();
             
             try (PreparedStatement ps = con.prepareStatement("SELECT login FROM accounts WHERE wallet_address = ?;"))
             {
@@ -107,8 +107,9 @@ public class LSMethods
     {
         try (Connection con = DatabaseFactory.getConnection();)
         {
-            byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
-            String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
+            final byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
+            final String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
+
             String databasePassword = "";
             String databaseWallet = "";
             
@@ -160,8 +161,9 @@ public class LSMethods
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
-            byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
-            String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
+            final byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
+            final String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
+
             String databasePassword = "";
             String databaseWallet = "";
             
@@ -381,32 +383,21 @@ public class LSMethods
         return sendRequestToGS(srvId, "isGameServerAvailable", new JSONArray());
     }
     
-    protected static void setReward(String srvId)
+    protected static void setConfig(String srvId, String wallet, String symbol)
     {
+        String rwdId = "0";
+        
         try (Connection con = DatabaseFactory.getConnection())
         {
             try (PreparedStatement ps = con.prepareStatement("SELECT reward_id FROM gameservers WHERE server_id = ? LIMIT 1;"))
             {
                 ps.setInt(1, Integer.parseInt(srvId));
-
+                
                 try (ResultSet rs = ps.executeQuery())
                 {
                     if (rs.next())
                     {
-                        String rewardId = rs.getString("reward_id");
-
-                        sendRequestToGS(srvId, "setReward", new JSONArray().put(rewardId)).thenAccept((responseObject) ->
-                        {
-                            if (!(responseObject.has("data") && responseObject.getBoolean("data")))
-                            {
-                                LOGGER.log(Level.WARNING, "Failed to set Game Server reward. Server id: " + srvId);
-                
-                                if(responseObject.has("fail"))
-                                {
-                                    LOGGER.log(Level.WARNING, "Fail reason: " + responseObject.getString("fail"));
-                                }
-                            }
-                        });
+                        rwdId = rs.getString("reward_id");
                     }
                 }
             }
@@ -414,7 +405,21 @@ public class LSMethods
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            LOGGER.log(Level.WARNING, "Blockchain in-game reward item could not be set");
         }
+                
+        sendRequestToGS(srvId, "setConfig", new JSONArray().put(rwdId).put(wallet).put(symbol)).thenAccept((responseObject) ->
+        {
+            if (!(responseObject.has("data") && responseObject.getBoolean("data")))
+            {
+                LOGGER.log(Level.WARNING, "Failed to send blockchain configuration to Game Server " + srvId);
+                
+                if (responseObject.has("fail"))
+                {
+                    LOGGER.log(Level.WARNING, "Fail reason: " + responseObject.getString("fail"));
+                }
+            }
+        });
     }
     
     protected static void updateGameServerBalance(String srvId)
@@ -423,7 +428,7 @@ public class LSMethods
         {
             if (responseObject.has("data"))
             {
-                String balance = responseObject.getString("data");
+                final String balance = responseObject.getString("data");
                 
                 try (Connection con = DatabaseFactory.getConnection();)
                 {
@@ -452,8 +457,8 @@ public class LSMethods
         {
             try (PreparedStatement ps = con.prepareStatement("SELECT * FROM fiskpay_temporary WHERE server_id = ? AND refund < ?;"))
             {
-                int timestamp = (int) (System.currentTimeMillis() / 1000);
-
+                final int timestamp = (int) (System.currentTimeMillis() / 1000);
+                
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setInt(2, timestamp);
                 
@@ -461,9 +466,9 @@ public class LSMethods
                 {
                     while (rs.next())
                     {
-                        String character = rs.getString("character_name");
-                        String amount = rs.getString("amount");
-                        String refund = rs.getString("refund");
+                        final String character = rs.getString("character_name");
+                        final String amount = rs.getString("amount");
+                        final String refund = rs.getString("refund");
                         
                         addToCharacter(srvId, character, amount).thenAccept(addObject ->
                         {
@@ -474,8 +479,8 @@ public class LSMethods
                                 if (!(finalizeObject.has("data") && finalizeObject.getBoolean("data")))
                                 {
                                     LOGGER.log(Level.WARNING, "Failed to refund player (finalize): " + character + " on server: " + srvId);
-
-                                    if(finalizeObject.has("fail"))
+                                    
+                                    if (finalizeObject.has("fail"))
                                     {
                                         LOGGER.log(Level.WARNING, "Fail reason: " + finalizeObject.getString("fail"));
                                     }
@@ -484,8 +489,8 @@ public class LSMethods
                             else
                             {
                                 LOGGER.log(Level.WARNING, "Failed to refund player (add): " + character + " on server: " + srvId);
-
-                                if(addObject.has("fail"))
+                                
+                                if (addObject.has("fail"))
                                 {
                                     LOGGER.log(Level.WARNING, "Fail reason: " + addObject.getString("fail"));
                                 }
@@ -508,30 +513,30 @@ public class LSMethods
     
     private static CompletableFuture<JSONObject> sendRequestToGS(String srvId, String subject, JSONArray info)
     {
-        CompletableFuture<JSONObject> future = new CompletableFuture<>();
+        final CompletableFuture<JSONObject> future = new CompletableFuture<>();
         
-        GameServerTable gsTable = GameServerTable.getInstance();
+        final GameServerTable gsTable = GameServerTable.getInstance();
         
         if (gsTable == null)
         {
-            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Could not get the GameServerTable instance"));
+            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Request to Game Server " + srvId + "failed. Could not get the GameServerTable instance"));
         }
         
-        GameServerInfo gsInfo = gsTable.getRegisteredGameServerById(Integer.parseInt(srvId));
+        final GameServerInfo gsInfo = gsTable.getRegisteredGameServerById(Integer.parseInt(srvId));
         
         if (gsInfo == null)
         {
-            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Could not find Game Server info"));
+            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Request to Game Server " + srvId + "failed. Could not find Game Server info"));
         }
         
-        GameServerThread gsThread = gsInfo.getGameServerThread();
+        final GameServerThread gsThread = gsInfo.getGameServerThread();
         
         if (gsThread == null)
         {
-            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Could not find Game Server thread"));
+            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Request to Game Server " + srvId + "failed. Could not find Game Server thread"));
         }
         
-        int uniqueID = getNextID();
+        final int uniqueID = getNextID();
         
         FiskPayResponseReceive.registerCallback(uniqueID, responseString ->
         {
@@ -539,7 +544,7 @@ public class LSMethods
             
             if (responseString == null || responseString.isEmpty())
             {
-                LOGGER.log(Level.WARNING, "Received an empty or null responseString");
+                LOGGER.log(Level.WARNING, "Received an empty or null responseString from Game Server" + srvId);
                 response = new JSONObject().put("fail", "responseString is empty or null");
             }
             else
@@ -550,7 +555,7 @@ public class LSMethods
                 }
                 catch (Exception e)
                 {
-                    LOGGER.log(Level.WARNING, "Invalid responseString: " + responseString, e);
+                    LOGGER.log(Level.WARNING, "Invalid responseString from Game Server " + srvId + ". Response: " + responseString, e);
                     response = new JSONObject().put("fail", "responseString is not a JSONObject string");
                 }
             }
@@ -561,12 +566,12 @@ public class LSMethods
             }
         });
         
-        JSONObject requestObject = new JSONObject();
+        final JSONObject requestObject = new JSONObject();
         
         requestObject.put("subject", subject);
         requestObject.put("info", info);
         
-        String requestString = requestObject.toString();
+        final String requestString = requestObject.toString();
         
         gsThread.sendFiskPayRequest(uniqueID, requestString); // Forward the request
         

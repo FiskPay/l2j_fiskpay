@@ -9,7 +9,7 @@
 		
 +		if(Config.BLOCKCHAIN_ENABLE)
 +		{
-+			FiskPayLoginClient.getInstance();
++			BlockchainClient.getInstance();
 +		}
 +
 		try

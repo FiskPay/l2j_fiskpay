@@ -5,7 +5,7 @@
 
  import java.util.StringTokenizer;
 
-+import org.l2jmobius.gameserver.blockchain.GSProcessor;
++import org.l2jmobius.gameserver.blockchain.Configuration;
  import org.l2jmobius.gameserver.data.xml.ItemData;
  import org.l2jmobius.gameserver.handler.IAdminCommandHandler;
  import org.l2jmobius.gameserver.model.World;
@@ -16,7 +16,7 @@
 				return false;
 			}
 +            
-+			if(GSProcessor.getRewardId() < Integer.MAX_VALUE && GSProcessor.getRewardId() == idval)
++			if (Configuration.isSet() && Configuration.getRewardId() == idval)
 +			{
 +				BuilderUtil.sendSysMessage(activeChar, "Blockchain item(s) can not be manualy created.");
 +				return false;
@@ -32,7 +32,7 @@
 			return;
 		}
 +		
-+		if(GSProcessor.getRewardId() < Integer.MAX_VALUE && GSProcessor.getRewardId() == id)
++		if (Configuration.isSet() && Configuration.getRewardId() == id)
 +		{
 +			BuilderUtil.sendSysMessage(activeChar, "Blockchain item(s) can not be manualy created.");
 +			return;

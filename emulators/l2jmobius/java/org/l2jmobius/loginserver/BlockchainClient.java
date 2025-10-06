@@ -22,7 +22,6 @@
 package org.l2jmobius.loginserver;
 
 import com.fiskpay.l2.Connector;
-import com.fiskpay.l2.Listener;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,16 +36,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-public class FiskPayLoginClient implements Listener
+public class BlockchainClient implements Connector.Interface
 {
-    private static final Logger LOGGER = Logger.getLogger(FiskPayLoginClient.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(BlockchainClient.class.getName());
     private static final Logger BLOCKCHAIN_LOGGER = Logger.getLogger("blockchain");
     
     private static final String SYMBOL = Config.BLOCKCHAIN_SYMBOL;
-    private static final String WALLET = Config.BLOCKCHAIN_WALLET;  
+    private static final String WALLET = Config.BLOCKCHAIN_WALLET;
     private static final String PASSWORD = Config.BLOCKCHAIN_PASSWORD;
     
     private static final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
+    private static boolean _connected = false;
     
     private Connector _connector;
     
@@ -55,7 +55,7 @@ public class FiskPayLoginClient implements Listener
     {
         LSProcessor.logDeposit(txHash, from, symbol, amount, srvId, character).thenAccept((logResult) ->
         {
-            String nowDate = getDateTime();
+            final String nowDate = getDateTime();
             
             if (!logResult.has("fail"))
             {
@@ -80,8 +80,8 @@ public class FiskPayLoginClient implements Listener
     @Override
     public void onLogWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
     {
-        String nowDate = getDateTime();
-        JSONObject logResult = LSProcessor.logWithdraw(txHash, to, symbol, amount, srvId, character, refund);
+        final String nowDate = getDateTime();
+        final JSONObject logResult = LSProcessor.logWithdraw(txHash, to, symbol, amount, srvId, character, refund);
         
         if (!logResult.has("fail"))
         {
@@ -107,7 +107,7 @@ public class FiskPayLoginClient implements Listener
     {
         if (requestObject.has("id") && requestObject.get("id") instanceof String && requestObject.has("subject") && requestObject.get("subject") instanceof String && requestObject.has("data") && requestObject.get("data") instanceof JSONObject)
         {
-            String srvId = requestObject.getString("id");
+            final String srvId = requestObject.getString("id");
             
             if ("ls".equals(srvId)) // Request must be handled by the Login Server
             {
@@ -137,9 +137,17 @@ public class FiskPayLoginClient implements Listener
         LOGGER.info(getClass().getSimpleName() + ": Connection established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in...");
         
-        _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept((message) ->
+        _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
-            LOGGER.info(getClass().getSimpleName() + ": " + message);
+            if (responseObject.has("fail"))
+            {
+                LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("fail"));
+            }
+            else
+            {
+                LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
+                _connected = true;
+            }
         }).exceptionally((e) ->
         {
             LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
@@ -172,7 +180,7 @@ public class FiskPayLoginClient implements Listener
         if (isConnected && !_onlineServers.contains(srvId))
         {
             _onlineServers.add(srvId);
-            LSProcessor.setReward(srvId);
+            LSProcessor.setConfig(srvId, WALLET, SYMBOL);
         }
         else if (!isConnected && _onlineServers.contains(srvId))
         {
@@ -182,16 +190,21 @@ public class FiskPayLoginClient implements Listener
         _connector.onlineServers(new JSONArray(_onlineServers));
     }
     
-    public static FiskPayLoginClient getInstance()
+    public boolean isConnected()
+    {
+        return _connected;
+    }
+    
+    public static BlockchainClient getInstance()
     {
         return SingletonHolder.INSTANCE;
     }
     
-    private FiskPayLoginClient()
+    private BlockchainClient()
     {
         /*
-         * This blocking delay is used to wait for any previous connections to close before attempting a new connection.
-         * If you remove this blocking delay, there is a chance that you get a "Client xxxxxxxxxxxxxxxxxxxx is already connected to the service" error when restarting your Login Server and fail to login.
+         * This blocking delay is used to wait for any previous connections to close before attempting a new connection. If you remove this delay, there is a chance that you get a "Client xxxxxxxxxxxxxxxxxxxx is already connected to the service" error when restarting your Login Server and fail to
+         * connect to the blockchain service.
          */
         
         for (int i = 5; i > 0; i--)
@@ -205,7 +218,7 @@ public class FiskPayLoginClient implements Listener
             catch (InterruptedException e)
             {
                 Thread.currentThread().interrupt();
-
+                
                 LOGGER.warning(getClass().getSimpleName() + ": Thread interrupted");
                 LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
                 break;
@@ -235,7 +248,7 @@ public class FiskPayLoginClient implements Listener
     
     private static class SingletonHolder
     {
-        private static final FiskPayLoginClient INSTANCE = new FiskPayLoginClient();
+        private static final BlockchainClient INSTANCE = new BlockchainClient();
     }
     
     private static String getServerName(String srvId)
@@ -245,7 +258,7 @@ public class FiskPayLoginClient implements Listener
     
     private static String getServerName(int serverId)
     {
-        GameServerTable gsTable = GameServerTable.getInstance();
+        final GameServerTable gsTable = GameServerTable.getInstance();
         
         if (gsTable != null)
         {
@@ -259,14 +272,15 @@ public class FiskPayLoginClient implements Listener
     {
         Calendar currentDate = Calendar.getInstance();
         
-        int day = currentDate.get(Calendar.DAY_OF_MONTH);
-        int month = currentDate.get(Calendar.MONTH) + 1; // Month is 0-based in Calendar
-        int year = currentDate.get(Calendar.YEAR);
-        int hour = currentDate.get(Calendar.HOUR_OF_DAY);
-        int minute = currentDate.get(Calendar.MINUTE);
-        int second = currentDate.get(Calendar.SECOND);
+        final int day = currentDate.get(Calendar.DAY_OF_MONTH);
+        final int month = currentDate.get(Calendar.MONTH) + 1; // Month is 0-based in Calendar
+        final int year = currentDate.get(Calendar.YEAR);
+        final int hour = currentDate.get(Calendar.HOUR_OF_DAY);
+        final int minute = currentDate.get(Calendar.MINUTE);
+        final int second = currentDate.get(Calendar.SECOND);
         
-        String datetime = String.format("%02d/%02d/%d @ %02d:%02d:%02d", day, month, year, hour, minute, second);
+        // Format the date and time similar to the JS version
+        final String datetime = String.format("%02d/%02d/%d @ %02d:%02d:%02d", day, month, year, hour, minute, second);
         
         return datetime;
     }

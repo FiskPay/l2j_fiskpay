@@ -16,6 +16,8 @@
     <classpathentry kind="lib" path="lib/json-20250107.jar" sourcepath="lib/json-20250107-sources.jar"/>
     <classpathentry kind="lib" path="lib/okhttp-3.12.12.jar" sourcepath="lib/okhttp-3.12.12-sources.jar"/>
     <classpathentry kind="lib" path="lib/okio-1.15.0.jar" sourcepath="lib/okio-1.15.0-sources.jar"/>
+	<classpathentry kind="lib" path="lib/core-3.5.1.jar" sourcepath="lib/core-3.5.1-sources"/>
+	<classpathentry kind="lib" path="lib/javase-3.5.1.jar" sourcepath="lib/javase-3.5.1-sources.jar"/>
 
     <!-- Output folder -->
     <classpathentry kind="output" path="build"/>

@@ -30,8 +30,8 @@ public class LSProcessor
 {
     public static JSONObject processLSRequest(JSONObject requestObject)
     {
-        String subject = requestObject.getString("subject");
-        JSONObject data = requestObject.getJSONObject("data");
+        final String subject = requestObject.getString("subject");
+        final JSONObject data = requestObject.getJSONObject("data");
         
         switch (subject)
         {
@@ -47,7 +47,7 @@ public class LSProcessor
                     return new JSONObject().put("fail", "walletAddress not a String");
                 }
                 
-                String walletAddress = data.getString("walletAddress");
+                final String walletAddress = data.getString("walletAddress");
                 
                 if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", walletAddress))
                 {
@@ -62,17 +62,17 @@ public class LSProcessor
             }
             case "linkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {
-                String username = data.getString("username");
-                String password = data.getString("password");
-                String walletAddress = data.getString("walletAddress");
+                final String username = data.getString("username");
+                final String password = data.getString("password");
+                final String walletAddress = data.getString("walletAddress");
                 
                 return LSMethods.linkAccount(username, password, walletAddress); // Links the account to the wallet address
             }
             case "unlinkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {
-                String username = data.getString("username");
-                String password = data.getString("password");
-                String walletAddress = data.getString("walletAddress");
+                final String username = data.getString("username");
+                final String password = data.getString("password");
+                final String walletAddress = data.getString("walletAddress");
                 
                 return LSMethods.unlinkAccount(username, password, walletAddress); // Unlinks the account from the wallet address
             }
@@ -85,9 +85,9 @@ public class LSProcessor
     
     public static CompletableFuture<JSONObject> processGSRequest(JSONObject requestObject)
     {
-        String srvId = requestObject.getString("id");
-        String subject = requestObject.getString("subject");
-        JSONObject data = requestObject.getJSONObject("data");
+        final String srvId = requestObject.getString("id");
+        final String subject = requestObject.getString("subject");
+        final JSONObject data = requestObject.getJSONObject("data");
         
         switch (subject)
         {
@@ -103,7 +103,7 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "username not a String"));
                 }
                 
-                String username = data.getString("username");
+                final String username = data.getString("username");
                 
                 return LSMethods.getAccountCharacters(srvId, username);
             }
@@ -119,7 +119,7 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
                 }
                 
-                String character = data.getString("character");
+                final String character = data.getString("character");
                 
                 return LSMethods.getCharacterBalance(srvId, character);
             }
@@ -135,7 +135,7 @@ public class LSProcessor
                     return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
                 }
                 
-                String character = data.getString("character");
+                final String character = data.getString("character");
                 
                 return LSMethods.isCharacterOffline(srvId, character);
             }
@@ -145,10 +145,10 @@ public class LSProcessor
             }
             case "doWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed
             {
-                String walletAddress = data.getString("walletAddress");
-                String character = data.getString("character");
-                String refund = data.getString("refund");
-                String amount = data.getString("amount");
+                final String walletAddress = data.getString("walletAddress");
+                final String character = data.getString("character");
+                final String refund = data.getString("refund");
+                final String amount = data.getString("amount");
                 
                 if (!LSMethods.isNewWithdraw(srvId, character, refund, amount))
                 {
@@ -162,7 +162,7 @@ public class LSProcessor
                         return CompletableFuture.completedFuture(responseObject0);
                     }
                     
-                    String username = responseObject0.getString("data");
+                    final String username = responseObject0.getString("data");
                     
                     if (!LSMethods.isWalletOwner(username, walletAddress))
                     {
@@ -219,16 +219,16 @@ public class LSProcessor
         return LSMethods.finalizeWithdraw(srvId, character, refund, amount);
     }
     
-    public static void setReward(String srvId)
+    public static void setConfig(String srvId, String wallet, String symbol)
     {
-        LSMethods.setReward(srvId);
+        LSMethods.setConfig(srvId, wallet, symbol);
     }
     
     public static void refundPlayers(String srvId)
     {
         LSMethods.refundPlayers(srvId);
     }
-        
+    
     public static void updateGameServerBalance(String srvId)
     {
         LSMethods.updateGameServerBalance(srvId);

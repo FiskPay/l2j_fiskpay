@@ -21,6 +21,8 @@
 
 package org.l2jmobius.gameserver.blockchain;
 
+import com.fiskpay.l2.Tools;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -36,31 +38,30 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.Shutdown;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
 import org.l2jmobius.gameserver.data.xml.ItemData;
+import org.l2jmobius.gameserver.enums.ChatType;
 import org.l2jmobius.gameserver.instancemanager.IdManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.World;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.PlayerInventory;
-import org.l2jmobius.gameserver.network.SystemMessageId;
+import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.network.serverpackets.InventoryUpdate;
-import org.l2jmobius.gameserver.network.serverpackets.SystemMessage;
+import org.l2jmobius.gameserver.util.DDSConverter;
 
 public class GSMethods
 {
     private static final Logger LOGGER = Logger.getLogger(GSMethods.class.getName());
     
-    private static int _rewardId = Integer.MAX_VALUE;
-
     protected static JSONObject getAccountCharacters(String username)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
-            JSONArray characters = new JSONArray();
-
+            final JSONArray characters = new JSONArray();
+            
             try (PreparedStatement ps = con.prepareStatement("SELECT char_name FROM characters WHERE account_name = ?;"))
             {
                 ps.setString(1, username);
-
+                
                 try (ResultSet rs = ps.executeQuery())
                 {
                     while (rs.next())
@@ -68,7 +69,7 @@ public class GSMethods
                         characters.put(rs.getString("char_name"));
                     }
                 }
-
+                
                 return new JSONObject().put("data", characters);
             }
         }
@@ -78,44 +79,44 @@ public class GSMethods
             return new JSONObject().put("fail", "getCharacters SQL error");
         }
     }
-
+    
     protected static JSONObject getCharacterBalance(String character)
     {
-        int playerId = CharInfoTable.getInstance().getIdByName(character);
-
+        final int playerId = CharInfoTable.getInstance().getIdByName(character);
+        
         if (playerId == -1)
         {
             return new JSONObject().put("fail", "Character not found");
         }
-
-        Player player = World.getInstance().getPlayer(playerId);
-
+        
+        final Player player = World.getInstance().getPlayer(playerId);
+        
         if (player != null)
         {
-            Item inventoryItem = player.getInventory().getItemByItemId(_rewardId);
-
+            final Item inventoryItem = player.getInventory().getItemByItemId(Configuration.getRewardId());
+            
             if (inventoryItem != null)
             {
                 return new JSONObject().put("data", Long.toString(inventoryItem.getCount()));
             }
-
+            
             return new JSONObject().put("data", "0");
         }
-
+        
         try (Connection con = DatabaseFactory.getConnection())
         {
             try (PreparedStatement ps = con.prepareStatement("SELECT SUM(i.count) AS balance FROM items AS i, characters AS c WHERE c.charId = i.owner_id AND c.char_name = ? AND i.item_id = ? AND i.loc = 'INVENTORY';"))
             {
                 ps.setString(1, character);
-                ps.setInt(2, _rewardId);
-
+                ps.setInt(2, Configuration.getRewardId());
+                
                 try (ResultSet rs = ps.executeQuery())
                 {
                     if (rs.next() && rs.getString("balance") != null)
                     {
                         return new JSONObject().put("data", rs.getString("balance"));
                     }
-
+                    
                     return new JSONObject().put("data", "0");
                 }
             }
@@ -126,26 +127,26 @@ public class GSMethods
             return new JSONObject().put("fail", "getCharacterBalance SQL error");
         }
     }
-
+    
     protected static JSONObject isCharacterOffline(String character)
     {
-        int playerId = CharInfoTable.getInstance().getIdByName(character);
-
+        final int playerId = CharInfoTable.getInstance().getIdByName(character);
+        
         if (playerId == -1)
         {
             return new JSONObject().put("fail", "Character not found");
         }
-
-        Player player = World.getInstance().getPlayer(playerId);
-
+        
+        final Player player = World.getInstance().getPlayer(playerId);
+        
         if (player == null)
         {
             return new JSONObject().put("data", 0);
         }
-
+        
         return new JSONObject().put("data", 1);
     }
-
+    
     protected static JSONObject getCharacterUsername(String character)
     {
         try (Connection con = DatabaseFactory.getConnection())
@@ -153,14 +154,14 @@ public class GSMethods
             try (PreparedStatement ps = con.prepareStatement("SELECT account_name FROM characters WHERE char_name = ? LIMIT 1;"))
             {
                 ps.setString(1, character);
-
+                
                 try (ResultSet rs = ps.executeQuery())
                 {
                     if (rs.next())
                     {
                         return new JSONObject().put("data", rs.getString("account_name"));
                     }
-
+                    
                     return new JSONObject().put("fail", "Character " + character + " account username not found");
                 }
             }
@@ -171,92 +172,88 @@ public class GSMethods
             return new JSONObject().put("fail", "getCharacterUsername SQL error");
         }
     }
-
+    
     protected static JSONObject addToCharacter(String character, String amount)
     {
-        if (_rewardId == Integer.MAX_VALUE)
+        if (!Configuration.isSet())
         {
-            return new JSONObject().put("fail", "Blockchain item not set");
+            return new JSONObject().put("fail", "Blockchain in-game reward item is not set");
         }
-
+        
         int playerId = CharInfoTable.getInstance().getIdByName(character);
-
+        
         if (playerId == -1)
         {
             return new JSONObject().put("fail", "Character not found");
         }
-
-        long itemAmount = Long.parseLong(amount);
-        Player player = World.getInstance().getPlayer(playerId);
-
+        
+        final long itemAmount = Long.parseLong(amount);
+        final String itemName = ItemData.getInstance().getTemplate(Configuration.getRewardId()).getName();
+        final Player player = World.getInstance().getPlayer(playerId);
+        
         if (player != null)
         {
-            PlayerInventory inventory = player.getInventory();
-            Item inventoryItem = inventory.getItemByItemId(_rewardId);
-
-            InventoryUpdate iu = new InventoryUpdate();
-            SystemMessage sm = new SystemMessage(SystemMessageId.YOU_HAVE_EARNED_S2_S1_S);
-
+            final PlayerInventory inventory = player.getInventory();
+            final Item inventoryItem = inventory.getItemByItemId(Configuration.getRewardId());
+            
+            final InventoryUpdate iu = new InventoryUpdate();
+            
             if (inventoryItem != null)
             {
-                long inventoryAmount = inventoryItem.getCount();
+                final long inventoryAmount = inventoryItem.getCount();
                 inventoryItem.setCount(inventoryAmount + itemAmount);
-
                 iu.addModifiedItem(inventoryItem);
-                sm.addItemName(inventoryItem);
             }
             else
             {
-                Item newItem = player.getInventory().addItem("Deposit", _rewardId, itemAmount, player, null);
-
+                final Item newItem = player.getInventory().addItem("Deposit", Configuration.getRewardId(), itemAmount, player, null);
                 iu.addNewItem(newItem);
-                sm.addItemName(newItem);
             }
-
-            sm.addLong(itemAmount);
-
+            
             player.sendInventoryUpdate(iu);
-            player.sendPacket(sm);
-
+            player.sendPacket(new CreatureSay(null, ChatType.HERO_VOICE, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
+            player.sendPacket(new CreatureSay(null, ChatType.ALLIANCE, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been deposited"));
+            
             inventory.updateDatabase();
-
+            
             return new JSONObject().put("data", true);
         }
-
+        
         Connection con = null;
-
-        try {
+        
+        try
+        {
             con = DatabaseFactory.getConnection();
             con.setAutoCommit(false);
-
+            
             try (PreparedStatement ps = con.prepareStatement("UPDATE items SET count = count + ? WHERE owner_id = ? AND item_id = ? AND loc = 'INVENTORY';"))
             {
                 ps.setLong(1, itemAmount);
                 ps.setInt(2, playerId);
-                ps.setInt(3, _rewardId);
-
+                ps.setInt(3, Configuration.getRewardId());
+                
                 if (ps.executeUpdate() == 0)
                 {
                     try (PreparedStatement ps1 = con.prepareStatement("INSERT INTO items (owner_id, object_id, item_id, count, loc) VALUES (?, ?, ?, ?, 'INVENTORY');"))
                     {
-                        IdManager im = IdManager.getInstance();
-                        int nextId = im.getNextId();
-
+                        final IdManager im = IdManager.getInstance();
+                        final int nextId = im.getNextId();
+                        
                         ps1.setInt(1, playerId);
                         ps1.setInt(2, nextId);
-                        ps1.setInt(3, _rewardId);
+                        ps1.setInt(3, Configuration.getRewardId());
                         ps1.setLong(4, itemAmount);
-
+                        
                         if (ps1.executeUpdate() == 0)
                         {
                             im.releaseId(nextId);
-
+                            
                             con.rollback();
                             return new JSONObject().put("fail", "Offline deposit was not successful");
                         }
                     }
                 }
-
+                
                 con.commit();
                 return new JSONObject().put("data", true);
             }
@@ -274,7 +271,7 @@ public class GSMethods
                     LOGGER.log(Level.WARNING, "Rollback failed: " + ex.getMessage(), ex);
                 }
             }
-
+            
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
             return new JSONObject().put("fail", "addToCharacter SQL error");
         }
@@ -293,44 +290,44 @@ public class GSMethods
             }
         }
     }
-
+    
     protected static JSONObject removeFromCharacter(String character, String amount)
     {
-        if (_rewardId == Integer.MAX_VALUE)
+        if (!Configuration.isSet())
         {
-            return new JSONObject().put("fail", "Blockchain item not set");
+            return new JSONObject().put("fail", "Blockchain in-game reward item is not set");
         }
-
+        
         int playerId = CharInfoTable.getInstance().getIdByName(character);
-
+        
         if (playerId == -1)
         {
             return new JSONObject().put("fail", "Character not found");
         }
-
-        long itemAmount = Long.parseLong(amount);
-        Player player = World.getInstance().getPlayer(playerId);
-
+        
+        final long itemAmount = Long.parseLong(amount);
+        final String itemName = ItemData.getInstance().getTemplate(Configuration.getRewardId()).getName();
+        final Player player = World.getInstance().getPlayer(playerId);
+        
         if (player != null)
         {
-            PlayerInventory inventory = player.getInventory();
-            Item inventoryItem = inventory.getItemByItemId(_rewardId);
-
-            InventoryUpdate iu = new InventoryUpdate();
-            SystemMessage sm = new SystemMessage(SystemMessageId.S2_S1_HAS_DISAPPEARED);
-
+            final PlayerInventory inventory = player.getInventory();
+            final Item inventoryItem = inventory.getItemByItemId(Configuration.getRewardId());
+            
+            final InventoryUpdate iu = new InventoryUpdate();
+            
             if (inventoryItem == null)
             {
                 return new JSONObject().put("fail", "Item not found in inventory");
             }
-
-            long inventoryAmount = inventoryItem.getCount();
-
+            
+            final long inventoryAmount = inventoryItem.getCount();
+            
             if (inventoryAmount < itemAmount)
             {
                 return new JSONObject().put("fail", "Not enough items in inventory");
             }
-
+            
             if (inventoryAmount == itemAmount)
             {
                 player.getInventory().destroyItem("Withdraw", inventoryItem, inventoryAmount, player, null);
@@ -341,52 +338,51 @@ public class GSMethods
                 inventoryItem.setCount(inventoryAmount - itemAmount);
                 iu.addModifiedItem(inventoryItem);
             }
-
-            sm.addItemName(inventoryItem);
-            sm.addLong(itemAmount);
-
+            
             player.sendInventoryUpdate(iu);
-            player.sendPacket(sm);
-
+            player.sendPacket(new CreatureSay(null, ChatType.HERO_VOICE, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
+            player.sendPacket(new CreatureSay(null, ChatType.SHOUT, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been withdrawn"));
+            
             inventory.updateDatabase();
-
+            
             return new JSONObject().put("data", true);
         }
-
+        
         Connection con = null;
-
-        try {
+        
+        try
+        {
             con = DatabaseFactory.getConnection();
             con.setAutoCommit(false);
-
+            
             try (PreparedStatement ps = con.prepareStatement("SELECT count FROM items WHERE owner_id = ? AND item_id = ? AND loc = 'INVENTORY' LIMIT 1;"))
             {
                 ps.setInt(1, playerId);
-                ps.setInt(2, _rewardId);
-
+                ps.setInt(2, Configuration.getRewardId());
+                
                 try (ResultSet rs = ps.executeQuery())
                 {
                     if (rs.next())
                     {
-                        long inventoryAmount = rs.getLong("count");
-
+                        final long inventoryAmount = rs.getLong("count");
+                        
                         if (inventoryAmount < itemAmount)
                         {
                             con.rollback();
                             return new JSONObject().put("fail", "Not enough items in inventory");
                         }
-
+                        
                         if (inventoryAmount == itemAmount)
                         {
                             try (PreparedStatement ps1 = con.prepareStatement("DELETE FROM items WHERE owner_id = ? AND item_id = ? AND loc = 'INVENTORY';"))
                             {
                                 ps1.setInt(1, playerId);
-                                ps1.setInt(2, _rewardId);
-
+                                ps1.setInt(2, Configuration.getRewardId());
+                                
                                 if (ps1.executeUpdate() == 0)
                                 {
                                     con.rollback();
-                                    return new JSONObject().put("fail","Offline withdrawal (delete) was not successful");
+                                    return new JSONObject().put("fail", "Offline withdrawal (delete) was not successful");
                                 }
                             }
                         }
@@ -396,20 +392,20 @@ public class GSMethods
                             {
                                 ps1.setLong(1, itemAmount);
                                 ps1.setInt(2, playerId);
-                                ps1.setInt(3, _rewardId);
-
+                                ps1.setInt(3, Configuration.getRewardId());
+                                
                                 if (ps1.executeUpdate() == 0)
                                 {
                                     con.rollback();
-                                    return new JSONObject().put("fail","Offline withdrawal (update) was not successful");
+                                    return new JSONObject().put("fail", "Offline withdrawal (update) was not successful");
                                 }
                             }
                         }
-
+                        
                         con.commit();
                         return new JSONObject().put("data", true);
                     }
-
+                    
                     con.rollback();
                     return new JSONObject().put("fail", "Item not found in inventory");
                 }
@@ -428,7 +424,7 @@ public class GSMethods
                     LOGGER.log(Level.WARNING, "Rollback failed: " + ex.getMessage(), ex);
                 }
             }
-
+            
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
             return new JSONObject().put("fail", "removeFromCharacter SQL error");
         }
@@ -447,54 +443,63 @@ public class GSMethods
             }
         }
     }
-
+    
     protected static JSONObject isGameServerAvailable()
     {
-        Shutdown sd = Shutdown.getInstance();
-
+        final Shutdown sd = Shutdown.getInstance();
+        
         if (sd == null)
         {
             return new JSONObject().put("fail", "No Shutdown instance");
         }
-
+        
         return new JSONObject().put("data", sd.getMode() == 0);
     }
-
-    protected static JSONObject setReward(String rewardId)
+    
+    protected static JSONObject setConfig(String rwdId, String wallet, String symbol)
     {
-
-        int itemId = Integer.parseInt(rewardId);
-
-		if (ItemData.getInstance().getTemplate(itemId) == null)
-		{
-			return new JSONObject().put("fail", "Blockchain item does not exist");
-		}
-
-        _rewardId = itemId;
-
-        return new JSONObject().put("data", true);
+        final int rewardId = Integer.parseInt(rwdId);
+        
+        byte[] qrCodeData = null;
+        
+        if (ItemData.getInstance().getTemplate(rewardId) == null)
+        {
+            return new JSONObject().put("fail", "Blockchain in-game reward item (" + rwdId + ") does not exist");
+        }
+        
+        try
+        {
+            qrCodeData = DDSConverter.convertToDDS(Tools.generateQRCodeImage(wallet)).array();
+        }
+        catch (Exception e)
+        {
+            LOGGER.log(Level.WARNING, "QR Code error: " + e.getMessage(), e);
+            LOGGER.log(Level.WARNING, "QR Code data could not be produced");
+        }
+        
+        if (Configuration.setConfiguration(rewardId, wallet, symbol, qrCodeData))
+        {
+            return new JSONObject().put("data", true);
+        }
+        
+        return new JSONObject().put("fail", "Blockchain configuration could not be set");
     }
-
-    protected static int getRewardId()
-    {
-        return _rewardId;
-    }
-
+    
     protected static JSONObject fetchGameServerBalance()
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
             try (PreparedStatement ps = con.prepareStatement("SELECT SUM(count) AS balance FROM items WHERE item_id = ?;"))
             {
-                ps.setInt(1, _rewardId);
-
+                ps.setInt(1, Configuration.getRewardId());
+                
                 try (ResultSet rs = ps.executeQuery())
                 {
                     if (rs.next() && rs.getString("balance") != null)
                     {
                         return new JSONObject().put("data", rs.getString("balance"));
                     }
-
+                    
                     return new JSONObject().put("data", "0");
                 }
             }

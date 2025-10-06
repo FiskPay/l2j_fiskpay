@@ -1,0 +1,18 @@
+--- MasterHandler.java
++++ MasterHandler.java
+@@ -275,5 +275,6 @@
+import handlers.voicedcommandhandlers.AutoPotion;
+import handlers.voicedcommandhandlers.Banking;
+import handlers.voicedcommandhandlers.ChangePassword;
+import handlers.voicedcommandhandlers.ChatAdmin;
++import handlers.voicedcommandhandlers.Crypto;
+import handlers.voicedcommandhandlers.Lang;
+@@ -587,5 +589,8 @@
+			Summon.class,
+			TargetParty.class,
+			Unlockable.class,
+		},
++		{
++			Crypto.class,
++		},
+	};

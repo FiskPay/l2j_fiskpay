@@ -34,11 +34,11 @@ import io.socket.client.Socket;
 public class Connector
 {
     private Socket _socket;
-    private Listener _listener;
+    private Interface _connector;
 
-    public Connector(Listener listener)
+    public Connector(Interface connector)
     {
-        _listener = listener;
+        _connector = connector;
 
         try {
 
@@ -67,7 +67,7 @@ public class Connector
                     String server = (String) args[4];
                     String character = (String) args[5];
 
-                    _listener.onLogDeposit(txHash, from, symbol, amount, server, character);
+                    _connector.onLogDeposit(txHash, from, symbol, amount, server, character);
                 }
             });
 
@@ -83,18 +83,18 @@ public class Connector
                     String character = (String) args[5];
                     String refund = (String) args[6];
 
-                    _listener.onLogWithdraw(txHash, to, symbol, amount, server, character, refund);
+                    _connector.onLogWithdraw(txHash, to, symbol, amount, server, character, refund);
                 }
             });
 
-            _socket.on("connect", (i) ->
+            _socket.on("connect", (_) ->
             {
-                _listener.onConnect();
+                _connector.onConnect();
             });
 
-            _socket.on("disconnect", (i) ->
+            _socket.on("disconnect", (_) ->
             {
-                _listener.onDisconnect();
+                _connector.onDisconnect();
             });
 
             _socket.on("request", (args) ->
@@ -104,7 +104,7 @@ public class Connector
                     JSONObject requestObject = (JSONObject) args[0];
                     Ack ack = (Ack) args[1];
 
-                    _listener.onRequest(requestObject, (responseObject) ->
+                    _connector.onRequest(requestObject, (responseObject) ->
                     {
                         ack.call(responseObject);
                     });
@@ -115,13 +115,13 @@ public class Connector
         }
         catch (Exception e)
         {
-            _listener.onError(e);
+            _connector.onError(e);
         }
     }
 
-    public CompletableFuture<String> login(String tokenSymbol, String clientWalletAddress, String clientPassword, JSONArray onlineServers)
+    public CompletableFuture<JSONObject> login(String tokenSymbol, String clientWalletAddress, String clientPassword, JSONArray onlineServers)
     {
-        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<JSONObject> future = new CompletableFuture<>();
         JSONObject sendObject = new JSONObject();
 
         sendObject.put("symbol", tokenSymbol);
@@ -138,14 +138,7 @@ public class Connector
                 {
                     JSONObject responseObject = (JSONObject) response[0];
 
-                    if (responseObject.has("fail"))
-                    {
-                        future.complete(responseObject.getString("fail"));
-                    }
-                    else
-                    {
-                        future.complete("Signed in successfully");
-                    }
+                    future.complete(responseObject);
                 }
                 catch (Exception e)
                 {
@@ -157,11 +150,32 @@ public class Connector
             }
         });
 
-        return future.completeOnTimeout("Login request timed out", 5, TimeUnit.SECONDS);
+        return future.completeOnTimeout(new JSONObject().put("fail","Login request timed out"), 5, TimeUnit.SECONDS);
     }
 
     public void onlineServers(JSONArray onlineServers)
     {
         _socket.emit("onlineServers", onlineServers);
+    }
+
+    public interface Interface
+    {
+        void onLogDeposit(String txHash, String from, String symbol, String amount, String server, String character);
+
+        void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund);
+
+        void onRequest(JSONObject requestObject, Callback cb);
+
+        void onConnect();
+
+        void onDisconnect();
+
+        void onError(Exception e);
+
+        @FunctionalInterface
+        interface Callback
+        {
+            void resolve(JSONObject callbackObject);
+        }
     }
 }

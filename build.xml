@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
-<project name="FiskPayClient" default="jar" basedir=".">
+<project name="FiskPayBlockchainSupport" default="jar" basedir=".">
 
     <!-- Directories -->
     <property name="src.dir" value="src" />
@@ -42,36 +42,26 @@
     <!-- Compile the source code -->
     <target name="compile" depends="init">
         <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="classpath" debug="true" encoding="UTF-8" includeantruntime="false"/>
+        <copy todir="${build.dir}/images">
+            <fileset dir="${src.dir}/images" includes="FiskPayLogo.png"/>
+        </copy>
     </target>
 
     <!-- Create source JAR -->
     <target name="source-jar" depends="init">
-        <jar destfile="${dist.dir}/Connector-sources.jar" basedir="${src.dir}">
-            <manifest>
-                <attribute name="Main-Class" value="com.fiskpay.l2.Connector" />
-            </manifest>
+        <jar destfile="${dist.dir}/Blockchain-sources.jar" basedir="${src.dir}">
         </jar>
     </target>
 
     <!-- Create runnable JAR -->
     <target name="jar" depends="compile,source-jar">
-        <jar destfile="${dist.dir}/Connector.jar" basedir="${build.dir}">
-            <manifest>
-                <attribute name="Main-Class" value="com.fiskpay.l2.Connector" />
-                <attribute name="Class-Path" value="${manifest.lib}" />
-            </manifest>
+        <jar destfile="${dist.dir}/Blockchain.jar" basedir="${build.dir}">
         </jar>
     </target>
 
-
-
     <!-- Create runnable JAR with all dependencies included-->
     <target name="fat-jar" depends="compile,source-jar">
-        <jar destfile="${dist.dir}/Connector.jar">
-            <manifest>
-                <attribute name="Main-Class" value="com.fiskpay.l2.Connector" />
-                <attribute name="Class-Path" value="${manifest.lib}" />
-            </manifest>
+        <jar destfile="${dist.dir}/Blockchain.jar">
             <fileset dir="${build.dir}" />
             <zipgroupfileset dir="${lib.dir}" includes="*.jar" />
         </jar>
@@ -79,11 +69,11 @@
 
     <!-- Run the application -->
     <target name="run" depends="jar">
-        <java jar="${dist.dir}/Connector.jar" fork="true" />
+        <java jar="${dist.dir}/Blockchain.jar" fork="true" />
     </target>
 
     <!-- Cleanup task -->
-    <target name="cleanup" depends="run">
+    <target name="cleanup">
         <delete dir="${build.dir}" />
     </target>
 

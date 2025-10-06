@@ -30,47 +30,53 @@ public class GSProcessor
     {
         JSONObject requestObject = new JSONObject(requestString);
         JSONObject responseObject = new JSONObject();
-
+        
         String subject = requestObject.getString("subject");
         JSONArray info = requestObject.getJSONArray("info");
-
+        
         switch (subject)
         {
             case "getAccountCharacters":
             {
-                String username = info.getString(0);
+                final String username = info.getString(0);
+
                 responseObject = GSMethods.getAccountCharacters(username);
                 break;
             }
             case "getCharacterBalance":
             {
-                String character = info.getString(0);
+                final String character = info.getString(0);
+
                 responseObject = GSMethods.getCharacterBalance(character);
                 break;
             }
             case "isCharacterOffline":
             {
-                String character = info.getString(0);
+                final String character = info.getString(0);
+
                 responseObject = GSMethods.isCharacterOffline(character);
                 break;
             }
             case "getCharacterUsername":
             {
-                String character = info.getString(0);
+                final String character = info.getString(0);
+
                 responseObject = GSMethods.getCharacterUsername(character);
                 break;
             }
             case "addToCharacter":
             {
-                String character = info.getString(0);
-                String amount = info.getString(1);
+                final String character = info.getString(0);
+                final String amount = info.getString(1);
+
                 responseObject = GSMethods.addToCharacter(character, amount);
                 break;
             }
             case "removeFromCharacter":
             {
-                String character = info.getString(0);
-                String amount = info.getString(1);
+                final String character = info.getString(0);
+                final String amount = info.getString(1);
+
                 responseObject = GSMethods.removeFromCharacter(character, amount);
                 break;
             }
@@ -79,10 +85,13 @@ public class GSProcessor
                 responseObject = GSMethods.isGameServerAvailable();
                 break;
             }
-            case "setReward":
+            case "setConfig":
             {
-                String rewardId = info.getString(0);
-                responseObject = GSMethods.setReward(rewardId);
+                final String rwdId = info.getString(0);
+                final String wallet = info.getString(1);
+                final String symbol = info.getString(2);
+                
+                responseObject = GSMethods.setConfig(rwdId, wallet, symbol);
                 break;
             }
             case "fetchGameServerBalance":
@@ -96,12 +105,7 @@ public class GSProcessor
                 break;
             }
         }
-
+        
         return responseObject.toString();
-    }
-
-    public static int getRewardId(){
-
-        return GSMethods.getRewardId();
     }
 }
