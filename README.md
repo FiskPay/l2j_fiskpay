@@ -71,9 +71,13 @@ Build and launch your L2J server, depending on your project.
 
 Manage transactions between your server and the blockchain via the following link:
 
-[https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/](https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/)
+[https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/](https://l2.fiskpay.com/0x41dA7A1e5085179F43758dC5F0a5bBEB012E07F1/)
 
 Replace YOUR_ETHEREUM_ADDRESS_HERE with your actual Ethereum wallet address. 
+
+## In-game Preview
+
+<div align="center"><img width="828" height="477" alt="FiskPay in-game preview" src="https://github.com/user-attachments/assets/9f449c29-1b1d-473e-9b74-8e5ac455251c" /></div>
 
 
 ## License
