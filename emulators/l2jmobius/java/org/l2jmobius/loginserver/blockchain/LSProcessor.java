@@ -143,7 +143,7 @@ public class LSProcessor
             {
                 return LSMethods.getGameServerMode(srvId);
             }
-            case "doWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed
+            case "requestWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed
             {
                 final String walletAddress = data.getString("walletAddress");
                 final String character = data.getString("character");
