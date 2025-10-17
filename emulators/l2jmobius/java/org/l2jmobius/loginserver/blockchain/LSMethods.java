@@ -505,8 +505,7 @@ public class LSMethods
         {
             if (responseObject.getBoolean("ok") == true)
             {
-                LOGGER.log(Level.WARNING, "Failed to send blockchain configuration to Game Server " + srvId);
-                LOGGER.log(Level.WARNING, "Fail reason: Game Server returned false");
+                // Everything worked
             }
             else
             {
