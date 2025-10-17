@@ -207,7 +207,7 @@ public class LSProcessor
             return LSMethods.addToCharacter(srvId, character, amount);
         }
         
-        return new JSONObject().put("ok", false).put("error", "logDepositToDB in LSMethods.java had an error");
+        return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "logDepositToDB in LSMethods.java had an error"));
     }
     
     public static JSONObject logWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
@@ -225,9 +225,9 @@ public class LSProcessor
         LSMethods.setConfig(srvId, wallet, symbol);
     }
     
-    public static void refundPlayers(String srvId)
+    public static void refundExpitedWithdraws(String srvId)
     {
-        LSMethods.refundPlayers(srvId);
+        LSMethods.refundExpitedWithdraws(srvId);
     }
     
     public static void updateGameServerBalanceToDB(String srvId)

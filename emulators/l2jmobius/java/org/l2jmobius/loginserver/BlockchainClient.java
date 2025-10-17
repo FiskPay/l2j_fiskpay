@@ -192,7 +192,7 @@ public class BlockchainClient implements Connector.Interface
             _onlineServers.remove(srvId);
         }
         
-        _connector.onlineServers(new JSONArray(_onlineServers));
+        _connector.renewServers(new JSONArray(_onlineServers));
     }
     
     public boolean isSigned()
