@@ -25,9 +25,9 @@
 				}
 				LOGGER.info("Server [" + getServerId() + "] " + GameServerTable.getInstance().getServerNameById(getServerId()) + " is now set as disconnected.");
 +
-+				if (Config.BLOCKCHAIN_ENABLE && BlockchainClient.getInstance().isConnected())
++				if (Config.BLOCKCHAIN_ENABLE && BlockchainClient.getInstance().isSigned())
 +				{
-+					BlockchainClient.getInstance().updateServers(getServerId(), false);
++					BlockchainClient.getInstance().renewServers(getServerId(), false);
 +				}
 			}
 			LoginServer.getInstance().getGameServerListener().removeGameServer(this);
@@ -43,9 +43,9 @@
 		gsi.setMaxPlayers(maxPlayers);
 		gsi.setAuthed(true);
 +
-+		if (Config.BLOCKCHAIN_ENABLE && BlockchainClient.getInstance().isConnected())
++		if (Config.BLOCKCHAIN_ENABLE && BlockchainClient.getInstance().isSigned())
 +		{
-+			BlockchainClient.getInstance().updateServers(getServerId(), true);
++			BlockchainClient.getInstance().renewServers(getServerId(), true);
 +		}
 	}
 @@ -281,9 +293,14 @@ 

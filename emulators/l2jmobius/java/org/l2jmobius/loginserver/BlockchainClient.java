@@ -46,7 +46,7 @@ public class BlockchainClient implements Connector.Interface
     private static final String PASSWORD = Config.BLOCKCHAIN_PASSWORD;
     
     private static final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
-    private static boolean _connected = false;
+    private static boolean _signedIn = false;
     
     private Connector _connector;
     
@@ -57,7 +57,7 @@ public class BlockchainClient implements Connector.Interface
         {
             final String nowDate = getDateTime();
             
-            if (!logResult.has("fail"))
+            if (logResult.getBoolean("ok") == true)
             {
                 BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(srvId) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
             }
@@ -70,7 +70,7 @@ public class BlockchainClient implements Connector.Interface
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(srvId));
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("fail"));
+                BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("error"));
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | Action:   You must manualy reward " + amount + " " + symbol + " to player");
                 BLOCKCHAIN_LOGGER.warning(nowDate + " | ---------------------------------------- Failed Deposit End ----------------------------------------");
             }
@@ -83,7 +83,7 @@ public class BlockchainClient implements Connector.Interface
         final String nowDate = getDateTime();
         final JSONObject logResult = LSProcessor.logWithdraw(txHash, to, symbol, amount, srvId, character, refund);
         
-        if (!logResult.has("fail"))
+        if (logResult.getBoolean("ok") == true)
         {
             BLOCKCHAIN_LOGGER.info(nowDate + " | Withdrawal on " + getServerName(srvId) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
         }
@@ -96,7 +96,7 @@ public class BlockchainClient implements Connector.Interface
             BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(srvId));
             BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
             BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("fail"));
+            BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("error"));
             BLOCKCHAIN_LOGGER.warning(nowDate + " | Action:   You may manualy remove " + amount + " " + symbol + " from player");
             BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Withdrawal End --------------------------------------");
         }
@@ -121,12 +121,12 @@ public class BlockchainClient implements Connector.Interface
                 }
                 else
                 {
-                    cb.resolve(new JSONObject().put("fail", "Game server " + getServerName(srvId) + " is not available"));
+                    cb.resolve(new JSONObject().put("ok", false).put("error", "Game server " + getServerName(srvId) + " is not available"));
                 }
             }
             else
             {
-                cb.resolve(new JSONObject().put("fail", "Request object has an illegal id value"));
+                cb.resolve(new JSONObject().put("ok", false).put("error", "Request object has an illegal id value"));
             }
         }
     }
@@ -139,15 +139,20 @@ public class BlockchainClient implements Connector.Interface
         
         _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
-            if (responseObject.has("fail"))
+            if (responseObject.getBoolean("ok") == true)
             {
-                LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("fail"));
+                LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
+                _signedIn = true;
+            }
+            else if(responseObject.has("error") == true)
+            {
+                LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("error"));
             }
             else
             {
-                LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
-                _connected = true;
+                LOGGER.info(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
             }
+            
         }).exceptionally((e) ->
         {
             LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
@@ -170,12 +175,12 @@ public class BlockchainClient implements Connector.Interface
         LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
     }
     
-    public void updateServers(int serverId, boolean isConnected)
+    public void renewServers(int serverId, boolean isConnected)
     {
-        updateServers(Integer.toString(serverId), isConnected);
+        renewServers(Integer.toString(serverId), isConnected);
     }
     
-    public void updateServers(String srvId, boolean isConnected)
+    public void renewServers(String srvId, boolean isConnected)
     {
         if (isConnected && !_onlineServers.contains(srvId))
         {
@@ -190,9 +195,9 @@ public class BlockchainClient implements Connector.Interface
         _connector.onlineServers(new JSONArray(_onlineServers));
     }
     
-    public boolean isConnected()
+    public boolean isSigned()
     {
-        return _connected;
+        return _signedIn;
     }
     
     public static BlockchainClient getInstance()
@@ -201,30 +206,7 @@ public class BlockchainClient implements Connector.Interface
     }
     
     private BlockchainClient()
-    {
-        /*
-         * This blocking delay is used to wait for any previous connections to close before attempting a new connection. If you remove this delay, there is a chance that you get a "Client xxxxxxxxxxxxxxxxxxxx is already connected to the service" error when restarting your Login Server and fail to
-         * connect to the blockchain service.
-         */
-        
-        for (int i = 5; i > 0; i--)
-        {
-            LOGGER.info(getClass().getSimpleName() + ": Connencting in " + i);
-            
-            try
-            {
-                Thread.sleep(2000);
-            }
-            catch (InterruptedException e)
-            {
-                Thread.currentThread().interrupt();
-                
-                LOGGER.warning(getClass().getSimpleName() + ": Thread interrupted");
-                LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
-                break;
-            }
-        }
-        
+    {        
         LOGGER.info(getClass().getSimpleName() + ": Connecting...");
         
         _connector = new Connector(this);
@@ -233,7 +215,7 @@ public class BlockchainClient implements Connector.Interface
         {
             for (String srvId : _onlineServers)
             {
-                LSProcessor.refundPlayers(srvId);
+                LSProcessor.refundExpitedWithdraws(srvId);
             }
         }, 0, 150000);
         
@@ -241,7 +223,7 @@ public class BlockchainClient implements Connector.Interface
         {
             for (String srvId : _onlineServers)
             {
-                LSProcessor.updateGameServerBalance(srvId);
+                LSProcessor.updateGameServerBalanceToDB(srvId);
             }
         }, 75000, 150000);
     }

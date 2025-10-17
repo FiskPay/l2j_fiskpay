@@ -80,9 +80,9 @@ public class GSProcessor
                 responseObject = GSMethods.removeFromCharacter(character, amount);
                 break;
             }
-            case "isGameServerAvailable":
+            case "getGameServerMode":
             {
-                responseObject = GSMethods.isGameServerAvailable();
+                responseObject = GSMethods.getGameServerMode();
                 break;
             }
             case "setConfig":
@@ -94,14 +94,14 @@ public class GSProcessor
                 responseObject = GSMethods.setConfig(rwdId, wallet, symbol);
                 break;
             }
-            case "fetchGameServerBalance":
+            case "getGameServerBalance":
             {
-                responseObject = GSMethods.fetchGameServerBalance();
+                responseObject = GSMethods.getGameServerBalance();
                 break;
             }
             default:
             {
-                responseObject = new JSONObject().put("fail", "GS request subject unknown");
+                responseObject = new JSONObject().put("ok", false).put("error", "GS request subject unknown");
                 break;
             }
         }

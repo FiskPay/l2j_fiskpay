@@ -39,19 +39,19 @@ public class LSProcessor
             {
                 if (!data.has("walletAddress"))
                 {
-                    return new JSONObject().put("fail", "walletAddress undefined");
+                    return new JSONObject().put("ok", false).put("error", "walletAddress undefined");
                 }
                 
                 if (!(data.get("walletAddress") instanceof String))
                 {
-                    return new JSONObject().put("fail", "walletAddress not a String");
+                    return new JSONObject().put("ok", false).put("error", "walletAddress not a String");
                 }
                 
                 final String walletAddress = data.getString("walletAddress");
                 
                 if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", walletAddress))
                 {
-                    return new JSONObject().put("fail", "Improper walletAddress");
+                    return new JSONObject().put("ok", false).put("error", "Improper walletAddress");
                 }
                 
                 return LSMethods.getAccounts(walletAddress); // Get wallet accounts from Login Server database
@@ -78,7 +78,7 @@ public class LSProcessor
             }
             default:
             {
-                return new JSONObject().put("fail", "Unknown subject: " + subject);
+                return new JSONObject().put("ok", false).put("error", "Unknown subject: " + subject);
             }
         }
     }
@@ -95,12 +95,12 @@ public class LSProcessor
             {
                 if (!data.has("username"))
                 {
-                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "username undefined"));
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "username undefined"));
                 }
                 
                 if (!(data.get("username") instanceof String))
                 {
-                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "username not a String"));
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "username not a String"));
                 }
                 
                 final String username = data.getString("username");
@@ -111,12 +111,12 @@ public class LSProcessor
             {
                 if (!data.has("character"))
                 {
-                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character undefined"));
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character undefined"));
                 }
                 
                 if (!(data.get("character") instanceof String))
                 {
-                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character not a String"));
                 }
                 
                 final String character = data.getString("character");
@@ -127,21 +127,21 @@ public class LSProcessor
             {
                 if (!data.has("character"))
                 {
-                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character undefined"));
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character undefined"));
                 }
                 
                 if (!(data.get("character") instanceof String))
                 {
-                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "character not a String"));
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character not a String"));
                 }
                 
                 final String character = data.getString("character");
                 
                 return LSMethods.isCharacterOffline(srvId, character);
             }
-            case "isAvailable":
+            case "getGSMode":
             {
-                return LSMethods.isGameServerAvailable(srvId);
+                return LSMethods.getGameServerMode(srvId);
             }
             case "doWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed
             {
@@ -152,12 +152,12 @@ public class LSProcessor
                 
                 if (!LSMethods.isNewWithdraw(srvId, character, refund, amount))
                 {
-                    return CompletableFuture.completedFuture(new JSONObject().put("fail", "Trying to exploit? Help us grow, report your findings"));
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Trying to exploit? Help us grow, report your findings"));
                 }
                 
                 return LSMethods.getCharacterUsername(srvId, character).thenCompose((responseObject0) ->
                 {
-                    if (responseObject0.has("fail"))
+                    if (responseObject0.has("error"))
                     {
                         return CompletableFuture.completedFuture(responseObject0);
                     }
@@ -166,12 +166,12 @@ public class LSProcessor
                     
                     if (!LSMethods.isWalletOwner(username, walletAddress))
                     {
-                        return CompletableFuture.completedFuture(new JSONObject().put("fail", "Wallet ownership verification failed"));
+                        return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Wallet ownership verification failed"));
                     }
                     
                     return LSMethods.removeFromCharacter(srvId, character, amount).thenCompose((responseObject1) ->
                     {
-                        if (responseObject1.has("fail"))
+                        if (responseObject1.has("error"))
                         {
                             return CompletableFuture.completedFuture(responseObject1);
                         }
@@ -180,43 +180,44 @@ public class LSProcessor
                         {
                             return LSMethods.addToCharacter(srvId, character, amount).thenApply((responseObject2) ->
                             {
-                                if (responseObject2.has("fail"))
+                                if (responseObject2.getBoolean("ok") == true)
                                 {
-                                    return responseObject2;
+                                    return new JSONObject().put("ok", false).put("error", "Refund could not be created. Withdrawal reverted");
                                 }
                                 
-                                if (responseObject2.getBoolean("data"))
-                                {
-                                    return new JSONObject().put("fail", "Refund could not be created. Withdrawal reverted");
-                                }
-                                
-                                return new JSONObject().put("fail", "REFUND COULD NOT BE CREATED AND WITHDRAWAL NOT REVERTED");
+                                return responseObject2;
                             });
                         }
                         
-                        return CompletableFuture.completedFuture(new JSONObject().put("data", true));
+                        return CompletableFuture.completedFuture(new JSONObject().put("ok", true));
                     });
                 });
             }
             default:
             {
-                return CompletableFuture.completedFuture(new JSONObject().put("fail", "subject unknown"));
+                return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "LS request subject unknown"));
             }
         }
     }
     
     public static CompletableFuture<JSONObject> logDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
-        LSMethods.logDepositToDB(txHash, from, symbol, amount, srvId, character);
+        if(LSMethods.logDepositToDB(txHash, from, symbol, amount, srvId, character) == true)
+        {
+            return LSMethods.addToCharacter(srvId, character, amount);
+        }
         
-        return LSMethods.addToCharacter(srvId, character, amount);
+        return new JSONObject().put("ok", false).put("error", "logDepositToDB in LSMethods.java had an error");
     }
     
     public static JSONObject logWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
     {
-        LSMethods.logWithdrawToDB(txHash, to, symbol, amount, srvId, character);
+        if(LSMethods.logWithdrawToDB(txHash, to, symbol, amount, srvId, character) == true)
+        {
+            return LSMethods.finalizeWithdraw(srvId, character, refund, amount);
+        }
         
-        return LSMethods.finalizeWithdraw(srvId, character, refund, amount);
+        return new JSONObject().put("ok", false).put("error", "logWithdrawToDB in LSMethods.java had an error");
     }
     
     public static void setConfig(String srvId, String wallet, String symbol)
@@ -229,8 +230,8 @@ public class LSProcessor
         LSMethods.refundPlayers(srvId);
     }
     
-    public static void updateGameServerBalance(String srvId)
+    public static void updateGameServerBalanceToDB(String srvId)
     {
-        LSMethods.updateGameServerBalance(srvId);
+        LSMethods.updateGameServerBalanceToDB(srvId);
     }
 }

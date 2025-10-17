@@ -56,6 +56,8 @@ public class Connector
 
             _socket = IO.socket("wss://ds.fiskpay.com:42099", socketOptions);
 
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> { _socket.disconnect(); _socket.close(); }));
+
             _socket.on("logDeposit", (args) -> 
             {
                 if (args.length == 6)
@@ -150,12 +152,12 @@ public class Connector
             }
         });
 
-        return future.completeOnTimeout(new JSONObject().put("fail","Login request timed out"), 5, TimeUnit.SECONDS);
+        return future.completeOnTimeout(new JSONObject().put("ok",false).put("error","Login request timed out"), 5, TimeUnit.SECONDS).exceptionally(e -> new JSONObject().put("ok", false).put("error", e.getMessage()));
     }
 
-    public void onlineServers(JSONArray onlineServers)
+    public void renewServers(JSONArray onlineServers)
     {
-        _socket.emit("onlineServers", onlineServers);
+        _socket.emit("renewServers", onlineServers);
     }
 
     public interface Interface

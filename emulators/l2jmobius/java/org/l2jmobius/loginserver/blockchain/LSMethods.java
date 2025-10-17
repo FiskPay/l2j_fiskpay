@@ -69,13 +69,23 @@ public class LSMethods
                     }
                 }
                 
-                return new JSONObject().put("data", accounts);
+                return new JSONObject().put("ok", true).put("data", accounts);
+            }
+            catch (Exception e)
+            {
+
+                LOGGER.log(Level.WARNING, "getAccounts could not be fetched from database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+                
+                return new JSONObject().put("ok", false).put("error", "getAccounts sql query error");
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "getAccounts SQL error");
+
+            return new JSONObject().put("ok", false).put("error", "getAccounts database connection error");
         }
     }
     
@@ -89,17 +99,27 @@ public class LSMethods
                 {
                     if (rs.next() && rs.getString("balance") != null)
                     {
-                        return new JSONObject().put("data", rs.getString("balance"));
+                        return new JSONObject().put("ok", true).put("data", rs.getString("balance"));
                     }
                     
-                    return new JSONObject().put("data", "0");
+                    return new JSONObject().put("ok", true).put("data", "0");
                 }
+            }
+            catch (Exception e)
+            {
+
+                LOGGER.log(Level.WARNING, "getClientBalance could not be fetched from database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+                
+                return new JSONObject().put("ok", false).put("error", "getClientBalance sql query error");
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "getClientBalance SQL error");
+
+            return new JSONObject().put("ok", false).put("error", "getClientBalance database connection error");
         }
     }
     
@@ -129,12 +149,12 @@ public class LSMethods
             
             if (!databasePassword.equals(inputPassword))
             {
-                return new JSONObject().put("fail", "Username - password mismatch");
+                return new JSONObject().put("ok", false).put("error", "Username - password mismatch");
             }
             
             if (!databaseWallet.equals("not linked"))
             {
-                return new JSONObject().put("fail", "Account " + username + " already linked to an Ethereum address");
+                return new JSONObject().put("ok", false).put("error", "Account " + username + " already linked to an Ethereum address");
             }
             
             try (PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
@@ -144,16 +164,25 @@ public class LSMethods
                 
                 if (ps.executeUpdate() > 0)
                 {
-                    return new JSONObject().put("data", true);
+                    return new JSONObject().put("ok", true);
                 }
                 
-                return new JSONObject().put("fail", "Linking wallet address to account failed");
+                return new JSONObject().put("ok", false).put("error", "No error, but ps.executeUpdate() returned zero (linkAccount)");
+            }
+            catch (Exception e)
+            {
+                LOGGER.log(Level.WARNING, "linkAccount could not be finalized to database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+                
+                return new JSONObject().put("ok", false).put("error", "linkAccount sql query error");
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "linkAccount SQL error");
+            
+            return new JSONObject().put("ok", false).put("error", "linkAccount database connection error");
         }
     }
     
@@ -180,19 +209,19 @@ public class LSMethods
                     }
                     else
                     {
-                        return new JSONObject().put("fail", "Account not found");
+                        return new JSONObject().put("ok", false).put("error", "Account not found");
                     }
                 }
             }
             
             if (!databasePassword.equals(inputPassword))
             {
-                return new JSONObject().put("fail", "Username - password mismatch");
+                return new JSONObject().put("ok", false).put("error", "Username - password mismatch");
             }
             
             if (!databaseWallet.equals(walletAddress))
             {
-                return new JSONObject().put("fail", "Account " + username + " not linked to your Ethereum address");
+                return new JSONObject().put("ok", false).put("error", "Account " + username + " not linked to your Ethereum address");
             }
             
             try (PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
@@ -202,16 +231,25 @@ public class LSMethods
                 
                 if (ps.executeUpdate() > 0)
                 {
-                    return new JSONObject().put("data", true);
+                    return new JSONObject().put("ok", true);
                 }
                 
-                return new JSONObject().put("fail", "Unlinking wallet address from account failed");
+                return new JSONObject().put("ok", false).put("error", "No error, but ps.executeUpdate() returned zero (unlinkAccount)");
+            }
+            catch (Exception e)
+            {
+                LOGGER.log(Level.WARNING, "unlinkAccount could not be finalized to database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+                
+                return new JSONObject().put("ok", false).put("error", "unlinkAccount sql query error");
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "unlinkAccount SQL error");
+
+            return new JSONObject().put("ok", false).put("error", "unlinkAccount database connection error");
         }
     }
     
@@ -228,16 +266,25 @@ public class LSMethods
                 
                 if (ps.executeUpdate() > 0)
                 {
-                    return new JSONObject().put("data", true);
+                    return new JSONObject().put("ok", true);
                 }
                 
-                return new JSONObject().put("fail", "Withdraw not finalized");
+                return new JSONObject().put("ok", false).put("error", "No error, but ps.executeUpdate() returned zero (finalizeWithdraw)");
+            }
+            catch(Exception e)
+            {
+                LOGGER.log(Level.WARNING, "Withdraw could not be finalized to database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+                
+                return new JSONObject().put("ok", false).put("error", "finalizeWithdraw sql query error");
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "finalizeWithdraw sql error");
+
+            return new JSONObject().put("ok", false).put("error", "finalizeWithdraw db connection error");
         }
     }
     
@@ -255,12 +302,19 @@ public class LSMethods
                     return rs.next();
                 }
             }
+            catch (Exception e)
+            {
+                LOGGER.log(Level.WARNING, "Wallet owner could not be fetched from database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return false;
         }
+
+        return false;
     }
     
     protected static boolean isNewWithdraw(String srvId, String character, String refund, String amount)
@@ -279,12 +333,19 @@ public class LSMethods
                     return !rs.next();
                 }
             }
+            catch (Exception e)
+            {
+                LOGGER.log(Level.WARNING, "New withdraw check could not be fetched from database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return false;
         }
+
+        return false;
     }
     
     protected static boolean createNewWithdraw(String srvId, String character, String refund, String amount)
@@ -300,15 +361,22 @@ public class LSMethods
                 
                 return ps.executeUpdate() > 0;
             }
+            catch (Exception e)
+            {
+                LOGGER.log(Level.WARNING, "New withdraw could not be added to database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+            }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return false;
         }
+
+        return false;
     }
     
-    protected static void logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
+    protected static boolean logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -320,15 +388,25 @@ public class LSMethods
                 ps.setString(4, from);
                 ps.setLong(5, Long.parseLong(amount));
                 ps.executeUpdate();
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LOGGER.log(Level.WARNING, "Deposit could not be logged to database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
+
+        return false;
     }
     
-    protected static void logWithdrawToDB(String txHash, String to, String symbol, String amount, String srvId, String character)
+    protected static boolean logWithdrawToDB(String txHash, String to, String symbol, String amount, String srvId, String character)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -340,12 +418,22 @@ public class LSMethods
                 ps.setString(4, to);
                 ps.setLong(5, Long.parseLong(amount));
                 ps.executeUpdate();
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                LOGGER.log(Level.WARNING, "Withdraw could not be logged to database");
+                LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
+
+        return false;
     }
     
     protected static CompletableFuture<JSONObject> getAccountCharacters(String srvId, String username)
@@ -378,9 +466,9 @@ public class LSMethods
         return sendRequestToGS(srvId, "removeFromCharacter", new JSONArray(Arrays.asList(character, amount)));
     }
     
-    protected static CompletableFuture<JSONObject> isGameServerAvailable(String srvId)
+    protected static CompletableFuture<JSONObject> getGameServerMode(String srvId)
     {
-        return sendRequestToGS(srvId, "isGameServerAvailable", new JSONArray());
+        return sendRequestToGS(srvId, "getGameServerMode", new JSONArray());
     }
     
     protected static void setConfig(String srvId, String wallet, String symbol)
@@ -400,58 +488,69 @@ public class LSMethods
                         rwdId = rs.getString("reward_id");
                     }
                 }
+                catch (Exception e)
+                {
+                    LOGGER.log(Level.WARNING, "Blockchain in-game reward item could not be fetched from database");
+                    LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
+                }
             }
         }
         catch (Exception e)
         {
+            LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            LOGGER.log(Level.WARNING, "Blockchain in-game reward item could not be set");
         }
                 
         sendRequestToGS(srvId, "setConfig", new JSONArray().put(rwdId).put(wallet).put(symbol)).thenAccept((responseObject) ->
         {
-            if (!(responseObject.has("data") && responseObject.getBoolean("data")))
+            if (responseObject.getBoolean("ok") == true)
             {
                 LOGGER.log(Level.WARNING, "Failed to send blockchain configuration to Game Server " + srvId);
-                
-                if (responseObject.has("fail"))
-                {
-                    LOGGER.log(Level.WARNING, "Fail reason: " + responseObject.getString("fail"));
-                }
+                LOGGER.log(Level.WARNING, "Fail reason: Game Server returned false");
+            }
+            else
+            {
+                LOGGER.log(Level.WARNING, "Failed to send blockchain configuration to Game Server " + srvId);
+                LOGGER.log(Level.WARNING, "Fail reason: " + responseObject.getString("error"));
             }
         });
     }
     
-    protected static void updateGameServerBalance(String srvId)
+    protected static void updateGameServerBalanceToDB(String srvId)
     {
-        sendRequestToGS(srvId, "fetchGameServerBalance", new JSONArray()).thenAccept((responseObject) ->
+        sendRequestToGS(srvId, "getGameServerBalance", new JSONArray()).thenAccept((responseObject) ->
         {
-            if (responseObject.has("data"))
+            if (responseObject.getBoolean("ok") == true)
             {
-                final String balance = responseObject.getString("data");
-                
                 try (Connection con = DatabaseFactory.getConnection();)
                 {
                     try (PreparedStatement ps = con.prepareStatement("UPDATE gameservers SET balance = ? WHERE server_id = ?;"))
                     {
-                        ps.setLong(1, Long.parseLong(balance));
+                        ps.setLong(1, Long.parseLong(responseObject.getString("data")));
                         ps.setInt(2, Integer.parseInt(srvId));
                         ps.executeUpdate();
+                    }
+                    catch (Exception e)
+                    {
+                        LOGGER.log(Level.WARNING, "Could not update gameserver balance to database");
+                        LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
                     }
                 }
                 catch (Exception e)
                 {
+                    LOGGER.log(Level.WARNING, "Error with database connection");
                     LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
                 }
             }
             else
             {
                 LOGGER.log(Level.WARNING, "Failed to update Game Server balance. Server id: " + srvId);
+                LOGGER.log(Level.WARNING, "Fail reason: " + responseObject.getString("error"));
             }
         });
     }
     
-    protected static void refundPlayers(String srvId)
+    protected static void refundExpitedWithdraws(String srvId)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -470,30 +569,26 @@ public class LSMethods
                         final String amount = rs.getString("amount");
                         final String refund = rs.getString("refund");
                         
-                        addToCharacter(srvId, character, amount).thenAccept(addObject ->
+                        addToCharacter(srvId, character, amount).thenAccept(responseObject1 ->
                         {
-                            if (addObject.has("data") && addObject.getBoolean("data"))
+                            if (responseObject1.getBoolean("ok") == true)
                             {
-                                JSONObject finalizeObject = finalizeWithdraw(srvId, character, refund, amount);
+                                JSONObject responseObject2 = finalizeWithdraw(srvId, character, refund, amount);
                                 
-                                if (!(finalizeObject.has("data") && finalizeObject.getBoolean("data")))
+                                if (responseObject2.getBoolean("ok") == true)
+                                {
+                                    // Everything worked
+                                }
+                                else
                                 {
                                     LOGGER.log(Level.WARNING, "Failed to refund player (finalize): " + character + " on server: " + srvId);
-                                    
-                                    if (finalizeObject.has("fail"))
-                                    {
-                                        LOGGER.log(Level.WARNING, "Fail reason: " + finalizeObject.getString("fail"));
-                                    }
+                                    LOGGER.log(Level.WARNING, "Fail reason: " + responseObject2.getString("error"));
                                 }
                             }
                             else
                             {
                                 LOGGER.log(Level.WARNING, "Failed to refund player (add): " + character + " on server: " + srvId);
-                                
-                                if (addObject.has("fail"))
-                                {
-                                    LOGGER.log(Level.WARNING, "Fail reason: " + addObject.getString("fail"));
-                                }
+                                LOGGER.log(Level.WARNING, "Fail reason: " + responseObject1.getString("error"));
                             }
                         });
                     }
@@ -502,7 +597,8 @@ public class LSMethods
         }
         catch (Exception e)
         {
-            LOGGER.log(Level.WARNING, "Database error in refundPlayers: " + e.getMessage(), e);
+            LOGGER.log(Level.WARNING, "Error with database connection");
+            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
     }
     
@@ -519,53 +615,58 @@ public class LSMethods
         
         if (gsTable == null)
         {
-            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Request to Game Server " + srvId + "failed. Could not get the GameServerTable instance"));
+            return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Request to Game Server " + srvId + "failed. Could not get the GameServerTable instance"));
         }
         
         final GameServerInfo gsInfo = gsTable.getRegisteredGameServerById(Integer.parseInt(srvId));
         
         if (gsInfo == null)
         {
-            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Request to Game Server " + srvId + "failed. Could not find Game Server info"));
+            return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Request to Game Server " + srvId + "failed. Could not find Game Server info"));
         }
         
         final GameServerThread gsThread = gsInfo.getGameServerThread();
         
         if (gsThread == null)
         {
-            return CompletableFuture.completedFuture(new JSONObject().put("fail", "Request to Game Server " + srvId + "failed. Could not find Game Server thread"));
+            return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Request to Game Server " + srvId + "failed. Could not find Game Server thread"));
         }
         
         final int uniqueID = getNextID();
         
+        //Then will happen this part of the code (result of the trigger) - START
         FiskPayResponseReceive.registerCallback(uniqueID, responseString ->
         {
-            JSONObject response;
+            JSONObject responseObject;
             
-            if (responseString == null || responseString.isEmpty())
-            {
-                LOGGER.log(Level.WARNING, "Received an empty or null responseString from Game Server" + srvId);
-                response = new JSONObject().put("fail", "responseString is empty or null");
-            }
-            else
+            if (responseString instanceof String)
             {
                 try
                 {
-                    response = new JSONObject(responseString);
+                    responseObject = new JSONObject(responseString);
                 }
                 catch (Exception e)
                 {
-                    LOGGER.log(Level.WARNING, "Invalid responseString from Game Server " + srvId + ". Response: " + responseString, e);
-                    response = new JSONObject().put("fail", "responseString is not a JSONObject string");
+                    LOGGER.log(Level.WARNING, "Invalid responseString from Game Server " + srvId);
+                    LOGGER.log(Level.WARNING, "Response: " + responseString);
+
+                    responseObject = new JSONObject().put("ok", false).put("error", "responseString is not a JSONObject string");
                 }
+            }
+            else
+            {
+                LOGGER.log(Level.WARNING, "Parameter responseString is not a string. Game Server id: " + srvId);
+                responseObject = new JSONObject().put("ok", false).put("error", "responseString is not a string");
             }
             
             if (!future.isDone())
             {
-                future.complete(response);
+                future.complete(responseObject);
             }
         });
-        
+        //Then will happen this part of the code (result of the trigger) - END
+
+        //First will happen this part of the code (trigger) - START
         final JSONObject requestObject = new JSONObject();
         
         requestObject.put("subject", subject);
@@ -574,7 +675,8 @@ public class LSMethods
         final String requestString = requestObject.toString();
         
         gsThread.sendFiskPayRequest(uniqueID, requestString); // Forward the request
+        //First will happen this part of the code (trigger) - END
         
-        return future.completeOnTimeout(new JSONObject().put("fail", "Request to Game Server " + srvId + " with subject " + subject + " timed out"), 10, TimeUnit.SECONDS);
+        return future.completeOnTimeout(new JSONObject().put("ok", false).put("error", "Request to Game Server " + srvId + " with subject " + subject + " timed out"), 10, TimeUnit.SECONDS);
     }
 }

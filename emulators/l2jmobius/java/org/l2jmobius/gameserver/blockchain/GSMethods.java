@@ -70,13 +70,13 @@ public class GSMethods
                     }
                 }
                 
-                return new JSONObject().put("data", characters);
+                return new JSONObject().put("ok", true).put("data", characters);
             }
         }
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "getCharacters SQL error");
+            return new JSONObject().put("ok", false).put("error", "getCharacters SQL error");
         }
     }
     
@@ -86,7 +86,7 @@ public class GSMethods
         
         if (playerId == -1)
         {
-            return new JSONObject().put("fail", "Character not found");
+            return new JSONObject().put("ok", false).put("error", "Character not found");
         }
         
         final Player player = World.getInstance().getPlayer(playerId);
@@ -97,10 +97,10 @@ public class GSMethods
             
             if (inventoryItem != null)
             {
-                return new JSONObject().put("data", Long.toString(inventoryItem.getCount()));
+                return new JSONObject().put("ok", true).put("data", Long.toString(inventoryItem.getCount()));
             }
             
-            return new JSONObject().put("data", "0");
+            return new JSONObject().put("ok", true).put("data", "0");
         }
         
         try (Connection con = DatabaseFactory.getConnection())
@@ -114,17 +114,17 @@ public class GSMethods
                 {
                     if (rs.next() && rs.getString("balance") != null)
                     {
-                        return new JSONObject().put("data", rs.getString("balance"));
+                        return new JSONObject().put("ok", true).put("data", rs.getString("balance"));
                     }
                     
-                    return new JSONObject().put("data", "0");
+                    return new JSONObject().put("ok", true).put("data", "0");
                 }
             }
         }
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "getCharacterBalance SQL error");
+            return new JSONObject().put("ok", false).put("error", "getCharacterBalance SQL error");
         }
     }
     
@@ -134,17 +134,17 @@ public class GSMethods
         
         if (playerId == -1)
         {
-            return new JSONObject().put("fail", "Character not found");
+            return new JSONObject().put("ok", false).put("error", "Character not found");
         }
         
         final Player player = World.getInstance().getPlayer(playerId);
         
         if (player == null)
         {
-            return new JSONObject().put("data", 0);
+            return new JSONObject().put("ok", true).put("data", false);
         }
         
-        return new JSONObject().put("data", 1);
+        return new JSONObject().put("ok", true).put("data", true);
     }
     
     protected static JSONObject getCharacterUsername(String character)
@@ -159,17 +159,18 @@ public class GSMethods
                 {
                     if (rs.next())
                     {
-                        return new JSONObject().put("data", rs.getString("account_name"));
+                        return new JSONObject().put("ok", true).put("data", rs.getString("account_name"));
                     }
                     
-                    return new JSONObject().put("fail", "Character " + character + " account username not found");
+                    return new JSONObject().put("ok", false).put("error", "Character " + character + " account username not found");
                 }
             }
         }
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "getCharacterUsername SQL error");
+
+            return new JSONObject().put("ok", false).put("error", "getCharacterUsername SQL error");
         }
     }
     
@@ -177,14 +178,14 @@ public class GSMethods
     {
         if (!Configuration.isSet())
         {
-            return new JSONObject().put("fail", "Blockchain in-game reward item is not set");
+            return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward item is not set");
         }
         
         int playerId = CharInfoTable.getInstance().getIdByName(character);
         
         if (playerId == -1)
         {
-            return new JSONObject().put("fail", "Character not found");
+            return new JSONObject().put("ok", false).put("error", "Character not found");
         }
         
         final long itemAmount = Long.parseLong(amount);
@@ -211,12 +212,12 @@ public class GSMethods
             }
             
             player.sendInventoryUpdate(iu);
-            player.sendPacket(new CreatureSay(null, ChatType.HERO_VOICE, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
-            player.sendPacket(new CreatureSay(null, ChatType.ALLIANCE, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been deposited"));
+            player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
+            player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been deposited"));
             
             inventory.updateDatabase();
             
-            return new JSONObject().put("data", true);
+            return new JSONObject().put("ok", true);
         }
         
         Connection con = null;
@@ -249,13 +250,15 @@ public class GSMethods
                             im.releaseId(nextId);
                             
                             con.rollback();
-                            return new JSONObject().put("fail", "Offline deposit was not successful");
+
+                            return new JSONObject().put("ok", false).put("error", "Offline deposit was not successful");
                         }
                     }
                 }
                 
                 con.commit();
-                return new JSONObject().put("data", true);
+
+                return new JSONObject().put("ok", true);
             }
         }
         catch (Exception e)
@@ -273,7 +276,8 @@ public class GSMethods
             }
             
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "addToCharacter SQL error");
+
+            return new JSONObject().put("ok", false).put("error", "addToCharacter SQL error");
         }
         finally
         {
@@ -295,14 +299,14 @@ public class GSMethods
     {
         if (!Configuration.isSet())
         {
-            return new JSONObject().put("fail", "Blockchain in-game reward item is not set");
+            return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward item is not set");
         }
         
         int playerId = CharInfoTable.getInstance().getIdByName(character);
         
         if (playerId == -1)
         {
-            return new JSONObject().put("fail", "Character not found");
+            return new JSONObject().put("ok", false).put("error", "Character not found");
         }
         
         final long itemAmount = Long.parseLong(amount);
@@ -318,14 +322,14 @@ public class GSMethods
             
             if (inventoryItem == null)
             {
-                return new JSONObject().put("fail", "Item not found in inventory");
+                return new JSONObject().put("ok", false).put("error", "Item not found in inventory");
             }
             
             final long inventoryAmount = inventoryItem.getCount();
             
             if (inventoryAmount < itemAmount)
             {
-                return new JSONObject().put("fail", "Not enough items in inventory");
+                return new JSONObject().put("ok", false).put("error", "Not enough items in inventory");
             }
             
             if (inventoryAmount == itemAmount)
@@ -340,12 +344,12 @@ public class GSMethods
             }
             
             player.sendInventoryUpdate(iu);
-            player.sendPacket(new CreatureSay(null, ChatType.HERO_VOICE, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
-            player.sendPacket(new CreatureSay(null, ChatType.SHOUT, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been withdrawn"));
+            player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
+            player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been withdrawn"));
             
             inventory.updateDatabase();
             
-            return new JSONObject().put("data", true);
+            return new JSONObject().put("ok", true);
         }
         
         Connection con = null;
@@ -369,7 +373,8 @@ public class GSMethods
                         if (inventoryAmount < itemAmount)
                         {
                             con.rollback();
-                            return new JSONObject().put("fail", "Not enough items in inventory");
+
+                            return new JSONObject().put("ok", false).put("error", "Not enough items in inventory");
                         }
                         
                         if (inventoryAmount == itemAmount)
@@ -382,7 +387,8 @@ public class GSMethods
                                 if (ps1.executeUpdate() == 0)
                                 {
                                     con.rollback();
-                                    return new JSONObject().put("fail", "Offline withdrawal (delete) was not successful");
+
+                                    return new JSONObject().put("ok", false).put("error", "Offline withdrawal (delete) was not successful");
                                 }
                             }
                         }
@@ -397,17 +403,20 @@ public class GSMethods
                                 if (ps1.executeUpdate() == 0)
                                 {
                                     con.rollback();
-                                    return new JSONObject().put("fail", "Offline withdrawal (update) was not successful");
+
+                                    return new JSONObject().put("ok", false).put("error", "Offline withdrawal (update) was not successful");
                                 }
                             }
                         }
                         
                         con.commit();
-                        return new JSONObject().put("data", true);
+
+                        return new JSONObject().put("ok", true);
                     }
                     
                     con.rollback();
-                    return new JSONObject().put("fail", "Item not found in inventory");
+
+                    return new JSONObject().put("ok", false).put("error", "Item not found in inventory");
                 }
             }
         }
@@ -426,7 +435,8 @@ public class GSMethods
             }
             
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "removeFromCharacter SQL error");
+
+            return new JSONObject().put("ok", false).put("error", "removeFromCharacter SQL error");
         }
         finally
         {
@@ -444,16 +454,16 @@ public class GSMethods
         }
     }
     
-    protected static JSONObject isGameServerAvailable()
+    protected static JSONObject getGameServerMode()
     {
         final Shutdown sd = Shutdown.getInstance();
         
         if (sd == null)
         {
-            return new JSONObject().put("fail", "No Shutdown instance");
+            return new JSONObject().put("ok", false).put("error", "No Shutdown instance");
         }
         
-        return new JSONObject().put("data", sd.getMode() == 0);
+        return new JSONObject().put("ok", true).put("data", sd.getMode());
     }
     
     protected static JSONObject setConfig(String rwdId, String wallet, String symbol)
@@ -464,7 +474,7 @@ public class GSMethods
         
         if (ItemData.getInstance().getTemplate(rewardId) == null)
         {
-            return new JSONObject().put("fail", "Blockchain in-game reward item (" + rwdId + ") does not exist");
+            return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward item (" + rwdId + ") does not exist");
         }
         
         try
@@ -479,13 +489,13 @@ public class GSMethods
         
         if (Configuration.setConfiguration(rewardId, wallet, symbol, qrCodeData))
         {
-            return new JSONObject().put("data", true);
+            return new JSONObject().put("ok", true);
         }
         
-        return new JSONObject().put("fail", "Blockchain configuration could not be set");
+        return new JSONObject().put("ok", false).put("error", "Blockchain configuration could not be set (maybe already set?)");
     }
     
-    protected static JSONObject fetchGameServerBalance()
+    protected static JSONObject getGameServerBalance()
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -497,17 +507,18 @@ public class GSMethods
                 {
                     if (rs.next() && rs.getString("balance") != null)
                     {
-                        return new JSONObject().put("data", rs.getString("balance"));
+                        return new JSONObject().put("ok", true).put("data", rs.getString("balance"));
                     }
                     
-                    return new JSONObject().put("data", "0");
+                    return new JSONObject().put("ok", true).put("data", "0");
                 }
             }
         }
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-            return new JSONObject().put("fail", "fetchGameServerBalance SQL error");
+
+            return new JSONObject().put("ok", false).put("error", "getGameServerBalance SQL error");
         }
     }
 }
