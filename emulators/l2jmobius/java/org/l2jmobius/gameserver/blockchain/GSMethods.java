@@ -38,12 +38,13 @@ import org.l2jmobius.commons.database.DatabaseFactory;
 import org.l2jmobius.gameserver.Shutdown;
 import org.l2jmobius.gameserver.data.sql.CharInfoTable;
 import org.l2jmobius.gameserver.data.xml.ItemData;
-import org.l2jmobius.gameserver.enums.ChatType;
-import org.l2jmobius.gameserver.instancemanager.IdManager;
+import org.l2jmobius.gameserver.managers.IdManager;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.model.World;
+import org.l2jmobius.gameserver.model.item.enums.ItemProcessType;
 import org.l2jmobius.gameserver.model.item.instance.Item;
 import org.l2jmobius.gameserver.model.itemcontainer.PlayerInventory;
+import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.network.serverpackets.InventoryUpdate;
 import org.l2jmobius.gameserver.util.DDSConverter;
@@ -169,7 +170,7 @@ public class GSMethods
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "getCharacterUsername SQL error");
         }
     }
@@ -207,7 +208,7 @@ public class GSMethods
             }
             else
             {
-                final Item newItem = player.getInventory().addItem("Deposit", Configuration.getRewardId(), itemAmount, player, null);
+                final Item newItem = player.getInventory().addItem(ItemProcessType.REWARD, Configuration.getRewardId(), itemAmount, player, null);
                 iu.addNewItem(newItem);
             }
             
@@ -250,14 +251,14 @@ public class GSMethods
                             im.releaseId(nextId);
                             
                             con.rollback();
-
+                            
                             return new JSONObject().put("ok", false).put("error", "Offline deposit was not successful");
                         }
                     }
                 }
                 
                 con.commit();
-
+                
                 return new JSONObject().put("ok", true);
             }
         }
@@ -276,7 +277,7 @@ public class GSMethods
             }
             
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "addToCharacter SQL error");
         }
         finally
@@ -334,7 +335,7 @@ public class GSMethods
             
             if (inventoryAmount == itemAmount)
             {
-                player.getInventory().destroyItem("Withdraw", inventoryItem, inventoryAmount, player, null);
+                player.getInventory().destroyItem(ItemProcessType.DESTROY, inventoryItem, inventoryAmount, player, null);
                 iu.addRemovedItem(inventoryItem);
             }
             else
@@ -373,7 +374,7 @@ public class GSMethods
                         if (inventoryAmount < itemAmount)
                         {
                             con.rollback();
-
+                            
                             return new JSONObject().put("ok", false).put("error", "Not enough items in inventory");
                         }
                         
@@ -387,7 +388,7 @@ public class GSMethods
                                 if (ps1.executeUpdate() == 0)
                                 {
                                     con.rollback();
-
+                                    
                                     return new JSONObject().put("ok", false).put("error", "Offline withdrawal (delete) was not successful");
                                 }
                             }
@@ -403,19 +404,19 @@ public class GSMethods
                                 if (ps1.executeUpdate() == 0)
                                 {
                                     con.rollback();
-
+                                    
                                     return new JSONObject().put("ok", false).put("error", "Offline withdrawal (update) was not successful");
                                 }
                             }
                         }
                         
                         con.commit();
-
+                        
                         return new JSONObject().put("ok", true);
                     }
                     
                     con.rollback();
-
+                    
                     return new JSONObject().put("ok", false).put("error", "Item not found in inventory");
                 }
             }
@@ -435,7 +436,7 @@ public class GSMethods
             }
             
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "removeFromCharacter SQL error");
         }
         finally
@@ -517,7 +518,7 @@ public class GSMethods
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "getGameServerBalance SQL error");
         }
     }

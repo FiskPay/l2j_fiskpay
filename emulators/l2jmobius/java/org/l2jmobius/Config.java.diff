@@ -24,11 +24,11 @@
 @@ -3330,4 +3338,10 @@
 		else if (SERVER_MODE == ServerMode.LOGIN)
 		{
-+			final PropertiesParser blockchainConfig = new PropertiesParser(BLOCKCHAIN_CONFIG_FILE);
++			final ConfigReader blockchainConfig = new ConfigReader(BLOCKCHAIN_CONFIG_FILE);
 +			BLOCKCHAIN_ENABLE = blockchainConfig.getBoolean("Enable", false);
 +			BLOCKCHAIN_SYMBOL = blockchainConfig.getString("Symbol", "USDT0");
 +			BLOCKCHAIN_WALLET = blockchainConfig.getString("Wallet", "0x0000000000000000000000000000000000000000");
 +			BLOCKCHAIN_PASSWORD = blockchainConfig.getString("Password", ""); 
 +
-			final PropertiesParser loginConfig = new PropertiesParser(LOGIN_CONFIG_FILE);
-			GAME_SERVER_LOGIN_HOST = loginConfig.getString("LoginHostname", "127.0.0.1");
+			// --------------------------------------------------
+			// Database
