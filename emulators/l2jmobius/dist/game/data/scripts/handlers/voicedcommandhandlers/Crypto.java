@@ -22,7 +22,7 @@
 package handlers.voicedcommandhandlers;
 
 import org.l2jmobius.gameserver.blockchain.Configuration;
-import org.l2jmobius.gameserver.enums.ChatType;
+import org.l2jmobius.gameserver.network.enums.ChatType;
 import org.l2jmobius.gameserver.handler.IVoicedCommandHandler;
 import org.l2jmobius.gameserver.model.actor.Player;
 import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
@@ -41,7 +41,7 @@ public class Crypto implements IVoicedCommandHandler
     private static final int CREST_ID = 700001;
     
     @Override
-    public boolean useVoicedCommand(String command, Player activeChar, String params)
+    public boolean onCommand(String command, Player activeChar, String params)
     {
         if (activeChar == null || !Configuration.isSet())
         {
@@ -76,7 +76,7 @@ public class Crypto implements IVoicedCommandHandler
     }
     
     @Override
-    public String[] getVoicedCommandList()
+    public String[] getCommandList()
     {
         return VOICED_COMMANDS;
     }
