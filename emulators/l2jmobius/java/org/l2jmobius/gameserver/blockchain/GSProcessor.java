@@ -24,6 +24,9 @@ package org.l2jmobius.gameserver.blockchain;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * @author Scrab
+ */
 public class GSProcessor
 {
     public static String processRequest(String requestString)
