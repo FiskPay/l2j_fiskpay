@@ -1,34 +1,37 @@
---- Config.java
-+++ Config.java
-@@ -93,5 +93,7 @@
-	public static final String SIEGE_CONFIG_FILE = "./config/Siege.ini";
-	public static final String TW_CONFIG_FILE = "./config/TerritoryWar.ini";
-	
+diff --git a/java/org/l2jmobius/Config.java b/java/org/l2jmobius/Config.java
+index b631c3a4d..f30e014a0 100644
+--- a/java/org/l2jmobius/Config.java
++++ b/java/org/l2jmobius/Config.java
+@@ -91,6 +91,8 @@ public class Config
+ 	public static final String FORTSIEGE_CONFIG_FILE = "./config/FortSiege.ini";
+ 	public static final String SIEGE_CONFIG_FILE = "./config/Siege.ini";
+ 	public static final String TW_CONFIG_FILE = "./config/TerritoryWar.ini";
++
 +	private static final String BLOCKCHAIN_CONFIG_FILE = "./config/Blockchain.ini";
-+
-	private static final String CHARACTER_CONFIG_FILE = "./config/Character.ini";
-	private static final String CH_SIEGE_CONFIG_FILE = "./config/ConquerableHallSiege.ini";
-@@ -977,6 +979,12 @@
-	// --------------------------------------------------
-	// No classification assigned to the following yet
-	// --------------------------------------------------
-	public static int MAX_ITEM_IN_PACKET;
-+
+ 	
+ 	// --------------------------------------------------
+ 	// Server Files
+@@ -309,6 +311,10 @@ public class Config
+ 	public static int INVENTORY_MAXIMUM_GM;
+ 	public static int INVENTORY_MAXIMUM_QUEST_ITEMS;
+ 	public static int MAX_ITEM_IN_PACKET;
 +	public static boolean BLOCKCHAIN_ENABLE;
 +	public static String BLOCKCHAIN_SYMBOL;
 +	public static String BLOCKCHAIN_WALLET;
 +	public static String BLOCKCHAIN_PASSWORD;
-+
-	public static int GAME_SERVER_LOGIN_PORT;
-	public static String GAME_SERVER_LOGIN_HOST;
-@@ -3330,4 +3338,10 @@
-		else if (SERVER_MODE == ServerMode.LOGIN)
-		{
+ 	public static int WAREHOUSE_SLOTS_DWARF;
+ 	public static int WAREHOUSE_SLOTS_NO_DWARF;
+ 	public static int WAREHOUSE_SLOTS_CLAN;
+@@ -3570,6 +3576,12 @@ public class Config
+ 		}
+ 		else if (SERVER_MODE == ServerMode.LOGIN)
+ 		{
 +			final ConfigReader blockchainConfig = new ConfigReader(BLOCKCHAIN_CONFIG_FILE);
 +			BLOCKCHAIN_ENABLE = blockchainConfig.getBoolean("Enable", false);
 +			BLOCKCHAIN_SYMBOL = blockchainConfig.getString("Symbol", "USDT0");
 +			BLOCKCHAIN_WALLET = blockchainConfig.getString("Wallet", "0x0000000000000000000000000000000000000000");
-+			BLOCKCHAIN_PASSWORD = blockchainConfig.getString("Password", ""); 
-+
-			// --------------------------------------------------
-			// Database
++			BLOCKCHAIN_PASSWORD = blockchainConfig.getString("Password", "");
++			
+ 			// --------------------------------------------------
+ 			// Database
+ 			// --------------------------------------------------

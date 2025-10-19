@@ -31,6 +31,9 @@ import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 
+/**
+ * @author Scrab
+ */
 public class Connector
 {
     private Socket _socket;
