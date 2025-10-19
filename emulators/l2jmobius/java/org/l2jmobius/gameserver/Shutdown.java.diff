@@ -11,7 +11,7 @@
 	}
 	
 +	/**
-+	 * Get shutdown mode to ABORT.
++	 * Get shutdown mode.
 +	 * @return the shutdown mode
 +	 */
 +	public int getMode()

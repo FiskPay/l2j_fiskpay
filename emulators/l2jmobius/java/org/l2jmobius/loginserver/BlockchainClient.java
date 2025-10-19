@@ -32,10 +32,15 @@ import org.l2jmobius.loginserver.blockchain.LSProcessor;
 
 import java.util.Calendar;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+/**
+ * @author Scrab
+ */
 public class BlockchainClient implements Connector.Interface
 {
     private static final Logger LOGGER = Logger.getLogger(BlockchainClient.class.getName());
@@ -45,8 +50,10 @@ public class BlockchainClient implements Connector.Interface
     private static final String WALLET = Config.BLOCKCHAIN_WALLET;
     private static final String PASSWORD = Config.BLOCKCHAIN_PASSWORD;
     
-    private static final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
-    private static boolean _signedIn = false;
+    private final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
+    private final CompletableFuture<Void> _connectionResult = new CompletableFuture<>();
+    
+    private boolean _signedIn = false;
     
     private Connector _connector;
     
@@ -144,13 +151,18 @@ public class BlockchainClient implements Connector.Interface
                 LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
                 _signedIn = true;
             }
-            else if(responseObject.has("error") == true)
+            else if (responseObject.has("error") == true)
             {
                 LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("error"));
             }
             else
             {
                 LOGGER.info(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
+            }
+            
+            if (!_connectionResult.isDone())
+            {
+                _connectionResult.complete(null);
             }
             
         }).exceptionally((e) ->
@@ -206,7 +218,7 @@ public class BlockchainClient implements Connector.Interface
     }
     
     private BlockchainClient()
-    {        
+    {
         LOGGER.info(getClass().getSimpleName() + ": Connecting...");
         
         _connector = new Connector(this);
@@ -226,6 +238,18 @@ public class BlockchainClient implements Connector.Interface
                 LSProcessor.updateGameServerBalanceToDB(srvId);
             }
         }, 75000, 150000);
+        
+        _connectionResult.completeOnTimeout(null, 10, TimeUnit.SECONDS);
+        
+        try
+        {
+            _connectionResult.get();
+        }
+        catch (Exception e)
+        {
+            LOGGER.warning(getClass().getSimpleName() + ": Error while connecting to service");
+            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+        }
     }
     
     private static class SingletonHolder

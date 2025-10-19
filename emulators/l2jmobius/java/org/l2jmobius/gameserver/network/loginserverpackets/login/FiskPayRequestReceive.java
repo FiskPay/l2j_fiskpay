@@ -26,6 +26,9 @@ import org.l2jmobius.commons.network.base.BaseReadablePacket;
 import org.l2jmobius.gameserver.LoginServerThread;
 import org.l2jmobius.gameserver.blockchain.GSProcessor;
 
+/**
+ * @author Scrab
+ */
 public class FiskPayRequestReceive extends BaseReadablePacket
 {
     public FiskPayRequestReceive(byte[] decrypt)

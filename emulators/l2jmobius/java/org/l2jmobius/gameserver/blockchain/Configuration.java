@@ -21,6 +21,9 @@
 
 package org.l2jmobius.gameserver.blockchain;
 
+/**
+ * @author Scrab
+ */
 public class Configuration
 {
     private static boolean _set = false;

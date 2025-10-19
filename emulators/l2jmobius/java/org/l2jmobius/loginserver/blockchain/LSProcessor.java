@@ -26,6 +26,9 @@ import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
+/**
+ * @author Scrab
+ */
 public class LSProcessor
 {
     public static JSONObject processLSRequest(JSONObject requestObject)

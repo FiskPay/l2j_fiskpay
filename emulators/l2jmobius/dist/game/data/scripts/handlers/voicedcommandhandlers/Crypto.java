@@ -31,6 +31,9 @@ import org.l2jmobius.gameserver.network.serverpackets.PledgeCrest;
 import org.l2jmobius.Config;
 import org.l2jmobius.commons.util.StringUtil;
 
+/**
+ * @author Scrab
+ */
 public class Crypto implements IVoicedCommandHandler
 {
     private static final String[] VOICED_COMMANDS =

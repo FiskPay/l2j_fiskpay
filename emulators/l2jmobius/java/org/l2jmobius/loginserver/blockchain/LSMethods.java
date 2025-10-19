@@ -46,6 +46,9 @@ import org.l2jmobius.loginserver.GameServerTable.GameServerInfo;
 import org.l2jmobius.loginserver.GameServerThread;
 import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceive;
 
+/**
+ * @author Scrab
+ */
 public class LSMethods
 {
     private static final Logger LOGGER = Logger.getLogger(LSMethods.class.getName());

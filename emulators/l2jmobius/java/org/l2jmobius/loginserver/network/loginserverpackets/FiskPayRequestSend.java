@@ -23,6 +23,9 @@ package org.l2jmobius.loginserver.network.loginserverpackets;
 
 import org.l2jmobius.commons.network.base.BaseWritablePacket;
 
+/**
+ * @author Scrab
+ */
 public class FiskPayRequestSend extends BaseWritablePacket
 {
     public FiskPayRequestSend(int requestId, String requestData)

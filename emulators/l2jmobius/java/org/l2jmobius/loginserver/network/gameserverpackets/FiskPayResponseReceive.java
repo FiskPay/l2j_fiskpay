@@ -27,6 +27,9 @@ import java.util.function.Consumer;
 import org.l2jmobius.commons.network.base.BaseReadablePacket;
 import org.l2jmobius.commons.threads.ThreadPool;
 
+/**
+ * @author Scrab
+ */
 public class FiskPayResponseReceive extends BaseReadablePacket
 {
     private static final ConcurrentHashMap<Integer, Consumer<String>> _callbacks = new ConcurrentHashMap<>();

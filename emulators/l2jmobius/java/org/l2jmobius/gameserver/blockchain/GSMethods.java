@@ -49,6 +49,9 @@ import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.network.serverpackets.InventoryUpdate;
 import org.l2jmobius.gameserver.util.DDSConverter;
 
+/**
+ * @author Scrab
+ */
 public class GSMethods
 {
     private static final Logger LOGGER = Logger.getLogger(GSMethods.class.getName());
