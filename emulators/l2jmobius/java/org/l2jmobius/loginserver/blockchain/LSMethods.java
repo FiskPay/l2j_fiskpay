@@ -76,7 +76,7 @@ public class LSMethods
             }
             catch (Exception e)
             {
-
+                
                 LOGGER.log(Level.WARNING, "getAccounts could not be fetched from database");
                 LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
                 
@@ -87,7 +87,7 @@ public class LSMethods
         {
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "getAccounts database connection error");
         }
     }
@@ -110,7 +110,7 @@ public class LSMethods
             }
             catch (Exception e)
             {
-
+                
                 LOGGER.log(Level.WARNING, "getClientBalance could not be fetched from database");
                 LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
                 
@@ -121,7 +121,7 @@ public class LSMethods
         {
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "getClientBalance database connection error");
         }
     }
@@ -132,7 +132,7 @@ public class LSMethods
         {
             final byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
             final String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
-
+            
             String databasePassword = "";
             String databaseWallet = "";
             
@@ -195,7 +195,7 @@ public class LSMethods
         {
             final byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
             final String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
-
+            
             String databasePassword = "";
             String databaseWallet = "";
             
@@ -251,7 +251,7 @@ public class LSMethods
         {
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "unlinkAccount database connection error");
         }
     }
@@ -274,7 +274,7 @@ public class LSMethods
                 
                 return new JSONObject().put("ok", false).put("error", "No error, but ps.executeUpdate() returned zero (finalizeWithdraw)");
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 LOGGER.log(Level.WARNING, "Withdraw could not be finalized to database");
                 LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
@@ -286,7 +286,7 @@ public class LSMethods
         {
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-
+            
             return new JSONObject().put("ok", false).put("error", "finalizeWithdraw db connection error");
         }
     }
@@ -316,7 +316,7 @@ public class LSMethods
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
-
+        
         return false;
     }
     
@@ -347,7 +347,7 @@ public class LSMethods
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
-
+        
         return false;
     }
     
@@ -375,7 +375,7 @@ public class LSMethods
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
-
+        
         return false;
     }
     
@@ -391,7 +391,7 @@ public class LSMethods
                 ps.setString(4, from);
                 ps.setLong(5, Long.parseLong(amount));
                 ps.executeUpdate();
-
+                
                 return true;
             }
             catch (Exception e)
@@ -405,7 +405,7 @@ public class LSMethods
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
-
+        
         return false;
     }
     
@@ -421,7 +421,7 @@ public class LSMethods
                 ps.setString(4, to);
                 ps.setLong(5, Long.parseLong(amount));
                 ps.executeUpdate();
-
+                
                 return true;
             }
             catch (Exception e)
@@ -435,7 +435,7 @@ public class LSMethods
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
-
+        
         return false;
     }
     
@@ -503,7 +503,7 @@ public class LSMethods
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
-                
+        
         sendRequestToGS(srvId, "setConfig", new JSONArray().put(rwdId).put(wallet).put(symbol)).thenAccept((responseObject) ->
         {
             if (responseObject.getBoolean("ok") == true)
@@ -636,29 +636,21 @@ public class LSMethods
         
         final int uniqueID = getNextID();
         
-        //Then will happen this part of the code (result of the trigger) - START
+        // Then will happen this part of the code (result of the trigger) - START
         FiskPayResponseReceive.registerCallback(uniqueID, responseString ->
         {
             JSONObject responseObject;
             
-            if (responseString instanceof String)
+            try
             {
-                try
-                {
-                    responseObject = new JSONObject(responseString);
-                }
-                catch (Exception e)
-                {
-                    LOGGER.log(Level.WARNING, "Invalid responseString from Game Server " + srvId);
-                    LOGGER.log(Level.WARNING, "Response: " + responseString);
-
-                    responseObject = new JSONObject().put("ok", false).put("error", "responseString is not a JSONObject string");
-                }
+                responseObject = new JSONObject(responseString);
             }
-            else
+            catch (Exception e)
             {
-                LOGGER.log(Level.WARNING, "Parameter responseString is not a string. Game Server id: " + srvId);
-                responseObject = new JSONObject().put("ok", false).put("error", "responseString is not a string");
+                LOGGER.log(Level.WARNING, "Invalid responseString from Game Server " + srvId);
+                LOGGER.log(Level.WARNING, "Response: " + responseString);
+                
+                responseObject = new JSONObject().put("ok", false).put("error", "responseString is not a JSONObject string");
             }
             
             if (!future.isDone())
@@ -666,9 +658,9 @@ public class LSMethods
                 future.complete(responseObject);
             }
         });
-        //Then will happen this part of the code (result of the trigger) - END
-
-        //First will happen this part of the code (trigger) - START
+        // Then will happen this part of the code (result of the trigger) - END
+        
+        // First will happen this part of the code (trigger) - START
         final JSONObject requestObject = new JSONObject();
         
         requestObject.put("subject", subject);
@@ -677,7 +669,7 @@ public class LSMethods
         final String requestString = requestObject.toString();
         
         gsThread.sendFiskPayRequest(uniqueID, requestString); // Forward the request
-        //First will happen this part of the code (trigger) - END
+        // First will happen this part of the code (trigger) - END
         
         return future.completeOnTimeout(new JSONObject().put("ok", false).put("error", "Request to Game Server " + srvId + " with subject " + subject + " timed out"), 10, TimeUnit.SECONDS);
     }
