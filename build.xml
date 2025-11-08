@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
-<project name="FiskPayBlockchainSupport" default="jar" basedir=".">
+<project name="FiskPayBlockchainSupport" default="fat-jar" basedir=".">
 
     <!-- Directories -->
     <property name="src.dir" value="src" />
