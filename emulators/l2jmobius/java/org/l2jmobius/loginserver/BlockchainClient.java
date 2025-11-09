@@ -61,25 +61,23 @@ public class BlockchainClient implements Connector.Interface
     public void onLogDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
         LSProcessor.logDeposit(txHash, from, symbol, amount, srvId, character).thenAccept((logResult) ->
-        {
-            final String nowDate = getDateTime();
-            
+        {            
             if (logResult.getBoolean("ok") == true)
             {
-                BLOCKCHAIN_LOGGER.info(nowDate + " | Deposit on " + getServerName(srvId) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
+                BLOCKCHAIN_LOGGER.info("Deposit on " + getServerName(srvId) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
             }
             else
             {
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Deposit Start ---------------------------------------");
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash:   " + txHash);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | From:     " + from);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | To:       " + character);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(srvId));
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("error"));
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | Action:   You must manualy reward " + amount + " " + symbol + " to player");
-                BLOCKCHAIN_LOGGER.warning(nowDate + " | ---------------------------------------- Failed Deposit End ----------------------------------------");
+                BLOCKCHAIN_LOGGER.warning( "--------------------------------------- Failed Deposit Start ---------------------------------------");
+                BLOCKCHAIN_LOGGER.warning( "TxHash:   " + txHash);
+                BLOCKCHAIN_LOGGER.warning( "From:     " + from);
+                BLOCKCHAIN_LOGGER.warning( "To:       " + character);
+                BLOCKCHAIN_LOGGER.warning( "Server:   " + getServerName(srvId));
+                BLOCKCHAIN_LOGGER.warning( "Amount:   " + amount);
+                BLOCKCHAIN_LOGGER.warning( "Token:    " + symbol);
+                BLOCKCHAIN_LOGGER.warning( "Message:  " + logResult.getString("error"));
+                BLOCKCHAIN_LOGGER.warning( "Action:   You must manualy reward " + amount + " " + symbol + " to player");
+                BLOCKCHAIN_LOGGER.warning( "---------------------------------------- Failed Deposit End ----------------------------------------");
             }
         });
     }
@@ -87,25 +85,24 @@ public class BlockchainClient implements Connector.Interface
     @Override
     public void onLogWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
     {
-        final String nowDate = getDateTime();
         final JSONObject logResult = LSProcessor.logWithdraw(txHash, to, symbol, amount, srvId, character, refund);
         
         if (logResult.getBoolean("ok") == true)
         {
-            BLOCKCHAIN_LOGGER.info(nowDate + " | Withdrawal on " + getServerName(srvId) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
+            BLOCKCHAIN_LOGGER.info("Withdrawal on " + getServerName(srvId) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
         }
         else
         {
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | -------------------------------------- Failed Withdrawal Start -------------------------------------");
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | TxHash:   " + txHash);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | From:     " + character);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | To:       " + to);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Server:   " + getServerName(srvId));
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Amount:   " + amount);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Token:    " + symbol);
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Message:  " + logResult.getString("error"));
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | Action:   You may manualy remove " + amount + " " + symbol + " from player");
-            BLOCKCHAIN_LOGGER.warning(nowDate + " | --------------------------------------- Failed Withdrawal End --------------------------------------");
+            BLOCKCHAIN_LOGGER.warning( "-------------------------------------- Failed Withdrawal Start -------------------------------------");
+            BLOCKCHAIN_LOGGER.warning( "TxHash:   " + txHash);
+            BLOCKCHAIN_LOGGER.warning( "From:     " + character);
+            BLOCKCHAIN_LOGGER.warning( "To:       " + to);
+            BLOCKCHAIN_LOGGER.warning( "Server:   " + getServerName(srvId));
+            BLOCKCHAIN_LOGGER.warning( "Amount:   " + amount);
+            BLOCKCHAIN_LOGGER.warning( "Token:    " + symbol);
+            BLOCKCHAIN_LOGGER.warning( "Message:  " + logResult.getString("error"));
+            BLOCKCHAIN_LOGGER.warning( "Action:   You may manualy remove " + amount + " " + symbol + " from player");
+            BLOCKCHAIN_LOGGER.warning( "--------------------------------------- Failed Withdrawal End --------------------------------------");
         }
     }
     
