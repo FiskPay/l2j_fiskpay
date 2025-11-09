@@ -270,21 +270,4 @@ public class BlockchainClient implements Connector.Interface
         
         return "Unknown";
     }
-    
-    private static String getDateTime()
-    {
-        Calendar currentDate = Calendar.getInstance();
-        
-        final int day = currentDate.get(Calendar.DAY_OF_MONTH);
-        final int month = currentDate.get(Calendar.MONTH) + 1; // Month is 0-based in Calendar
-        final int year = currentDate.get(Calendar.YEAR);
-        final int hour = currentDate.get(Calendar.HOUR_OF_DAY);
-        final int minute = currentDate.get(Calendar.MINUTE);
-        final int second = currentDate.get(Calendar.SECOND);
-        
-        // Format the date and time similar to the JS version
-        final String datetime = String.format("%02d/%02d/%d @ %02d:%02d:%02d", day, month, year, hour, minute, second);
-        
-        return datetime;
-    }
 }
