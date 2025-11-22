@@ -212,7 +212,7 @@ public class LSMethods
                     }
                     else
                     {
-                        return new JSONObject().put("ok", false).put("error", "Account not found");
+                        return new JSONObject().put("ok", false).put("error", "Username - password mismatch");
                     }
                 }
             }
