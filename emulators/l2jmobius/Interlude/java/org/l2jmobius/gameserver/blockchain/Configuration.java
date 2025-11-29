@@ -30,9 +30,10 @@ public class Configuration
     private static int _rewardId;
     private static String _wallet;
     private static String _symbol;
-    private static byte[] _qrCodeData;
+    private static byte[] _qrCodeDataUpper;
+    private static byte[] _qrCodeDataLower;
     
-    protected static boolean setConfiguration(int rewardId, String wallet, String symbol, byte[] qrCodeData)
+    protected static boolean setConfiguration(int rewardId, String wallet, String symbol, byte[] qrCodeDataUpper, byte[] qrCodeDataLower)
     {
         if (!isSet())
         {
@@ -42,7 +43,8 @@ public class Configuration
             
             try
             {
-                _qrCodeData = qrCodeData;
+                _qrCodeDataUpper = qrCodeDataUpper;
+                _qrCodeDataLower = qrCodeDataLower;
                 _set = true;
             }
             catch (Exception e)
@@ -74,9 +76,14 @@ public class Configuration
         return _symbol;
     }
     
-    public static byte[] getQRCodeData()
+    public static byte[] getQRCodeDataUpper()
     {
-        return _qrCodeData;
+        return _qrCodeDataUpper;
+    }
+    
+    public static byte[] getQRCodeDataLower()
+    {
+        return _qrCodeDataLower;
     }
     
     public static String getLink()

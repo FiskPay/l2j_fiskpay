@@ -23,6 +23,8 @@ package org.l2jmobius.gameserver.blockchain;
 
 import com.fiskpay.l2.Tools;
 
+import java.awt.image.BufferedImage;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -474,7 +476,8 @@ public class GSMethods
     {
         final int rewardId = Integer.parseInt(rwdId);
         
-        byte[] qrCodeData = null;
+        byte[] qrCodeDataUpper = null;
+        byte[] qrCodeDataLower = null;
         
         if (ItemData.getInstance().getTemplate(rewardId) == null)
         {
@@ -483,7 +486,17 @@ public class GSMethods
         
         try
         {
-            qrCodeData = DDSConverter.convertToDDS(Tools.generateQRCodeImage(wallet)).array();
+            
+            BufferedImage qrCodeImage = Tools.generateQRCodeImage(wallet);
+            
+            final int w = qrCodeImage.getWidth();
+            final int h = qrCodeImage.getHeight();
+            final int half = h / 2;
+            
+            BufferedImage upperHalf = qrCodeImage.getSubimage(0, 0, w, half);
+            BufferedImage lowerHalf = qrCodeImage.getSubimage(0, half, w, half);
+            qrCodeDataUpper = DDSConverter.convertToDDS(upperHalf).array();
+            qrCodeDataLower = DDSConverter.convertToDDS(lowerHalf).array();
         }
         catch (Exception e)
         {
@@ -491,7 +504,7 @@ public class GSMethods
             LOGGER.log(Level.WARNING, "QR Code data could not be produced");
         }
         
-        if (Configuration.setConfiguration(rewardId, wallet, symbol, qrCodeData))
+        if (Configuration.setConfiguration(rewardId, wallet, symbol, qrCodeDataUpper, qrCodeDataLower))
         {
             return new JSONObject().put("ok", true);
         }

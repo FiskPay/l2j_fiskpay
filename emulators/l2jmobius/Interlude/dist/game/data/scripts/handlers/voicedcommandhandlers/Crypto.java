@@ -41,7 +41,8 @@ public class Crypto implements IVoicedCommandHandler
         "crypto"
     };
     
-    private static final int CREST_ID = 700001;
+    private static final int CREST_ID_UPPER = 700100;
+    private static final int CREST_ID_LOWER = 700101;
     
     @Override
     public boolean onCommand(String command, Player activeChar, String params)
@@ -53,7 +54,11 @@ public class Crypto implements IVoicedCommandHandler
         
         if (command.equals("crypto"))
         {
-            final PledgeCrest packet = new PledgeCrest(CREST_ID, Configuration.getQRCodeData());
+            PledgeCrest packet;
+            
+            packet = new PledgeCrest(CREST_ID_UPPER, Configuration.getQRCodeDataUpper());
+            activeChar.sendPacket(packet);
+            packet = new PledgeCrest(CREST_ID_LOWER, Configuration.getQRCodeDataLower());
             activeChar.sendPacket(packet);
             
             final NpcHtmlMessage html = new NpcHtmlMessage(1);
@@ -62,9 +67,10 @@ public class Crypto implements IVoicedCommandHandler
             StringUtil.append(sb, "<html>");
             StringUtil.append(sb, "<title>Crypto Panel</title>");
             StringUtil.append(sb, "<body><center><br><br><img src=\"L2UI_CH3.herotower_deco\" width=\"256\" height=\"32\">");
-            StringUtil.append(sb, "Scan the QR code, or click the link in your chat");
+            StringUtil.append(sb, "Scan the QR code to open the panel");
             StringUtil.append(sb, "<br>");
-            StringUtil.append(sb, "<img src=\"Crest.crest_" + Config.SERVER_ID + "_" + CREST_ID + "\" width=256 height=256>");
+            StringUtil.append(sb, "<img src=\"Crest.crest_" + Config.SERVER_ID + "_" + CREST_ID_UPPER + "\" width=256 height=128>");
+            StringUtil.append(sb, "<img src=\"Crest.crest_" + Config.SERVER_ID + "_" + CREST_ID_LOWER + "\" width=256 height=128>");
             StringUtil.append(sb, "<br>");
             StringUtil.append(sb, "</center></body>");
             StringUtil.append(sb, "</html>");

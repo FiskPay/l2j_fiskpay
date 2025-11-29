@@ -50,8 +50,7 @@ public class Tools
      */
     public static BufferedImage generateQRCodeImage(String wallet) throws Exception
     {
-        int width = 256;
-        int height = 256;
+        int size = 256;
         
         // --- 1. Get the Logo as BufferedImage ---
         BufferedImage logoImage = ImageIO.read(Tools.class.getResourceAsStream("/images/FiskPayLogo.png"));
@@ -62,13 +61,13 @@ public class Tools
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
         hints.put(EncodeHintType.MARGIN, 1);
         
-        BitMatrix bitMatrix = qrCodeWriter.encode("https://l2.fiskpay.com/" + wallet + "/", BarcodeFormat.QR_CODE, width, height, hints);
+        BitMatrix bitMatrix = qrCodeWriter.encode("https://l2.fiskpay.com/" + wallet + "/", BarcodeFormat.QR_CODE, size, size, hints);
         
         // --- 3. Paint the QR Code on a BufferedImage ---
-        BufferedImage qrImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        for (int x = 0; x < width; x++)
+        BufferedImage qrImage = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        for (int x = 0; x < size; x++)
         {
-            for (int y = 0; y < height; y++)
+            for (int y = 0; y < size; y++)
             {
                 qrImage.setRGB(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
             }
@@ -79,16 +78,16 @@ public class Tools
         int qrHeight = qrImage.getHeight();
         int logoWidth = qrWidth / 4;
         int logoHeight = qrHeight / 4;
-
+        
         Image scaledLogo = logoImage.getScaledInstance(logoWidth, logoHeight, Image.SCALE_SMOOTH);
         BufferedImage combinedImage = new BufferedImage(qrWidth, qrHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = combinedImage.createGraphics();
-
+        
         g.drawImage(qrImage, 0, 0, null);
-
+        
         int centerX = (qrWidth - logoWidth) / 2;
         int centerY = (qrHeight - logoHeight) / 2;
-
+        
         g.drawImage(scaledLogo, centerX, centerY, null);
         g.dispose();
         
