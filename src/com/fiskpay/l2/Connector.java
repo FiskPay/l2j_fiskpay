@@ -38,30 +38,37 @@ public class Connector
 {
     private Socket _socket;
     private Interface _connector;
-
+    
     public Connector(Interface connector)
     {
         _connector = connector;
-
-        try {
-
+        
+        try
+        {
             IO.Options socketOptions = new IO.Options();
-
+            
             // Transport Protocol Settings
-            socketOptions.transports = new String[] { "websocket" };
+            socketOptions.transports = new String[]
+            {
+                "websocket"
+            };
             socketOptions.upgrade = false;
-
+            
             // Reconnection Strategy
             socketOptions.reconnection = true;
             socketOptions.reconnectionDelay = 5000; // in milliseconds
             socketOptions.reconnectionAttempts = Integer.MAX_VALUE;
             socketOptions.randomizationFactor = 0.5;
-
+            
             _socket = IO.socket("wss://ds.fiskpay.com:42099", socketOptions);
-
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> { _socket.disconnect(); _socket.close(); }));
-
-            _socket.on("logDeposit", (args) -> 
+            
+            Runtime.getRuntime().addShutdownHook(new Thread(() ->
+            {
+                _socket.disconnect();
+                _socket.close();
+            }));
+            
+            _socket.on("logDeposit", (args) ->
             {
                 if (args.length == 6)
                 {
@@ -71,11 +78,11 @@ public class Connector
                     String amount = (String) args[3];
                     String server = (String) args[4];
                     String character = (String) args[5];
-
+                    
                     _connector.onLogDeposit(txHash, from, symbol, amount, server, character);
                 }
             });
-
+            
             _socket.on("logWithdrawal", (args) ->
             {
                 if (args.length == 7)
@@ -87,35 +94,35 @@ public class Connector
                     String server = (String) args[4];
                     String character = (String) args[5];
                     String refund = (String) args[6];
-
+                    
                     _connector.onLogWithdraw(txHash, to, symbol, amount, server, character, refund);
                 }
             });
-
+            
             _socket.on("connect", (_) ->
             {
                 _connector.onConnect();
             });
-
+            
             _socket.on("disconnect", (_) ->
             {
                 _connector.onDisconnect();
             });
-
+            
             _socket.on("request", (args) ->
             {
                 if (args.length == 2)
                 {
                     JSONObject requestObject = (JSONObject) args[0];
                     Ack ack = (Ack) args[1];
-
+                    
                     _connector.onRequest(requestObject, (responseObject) ->
                     {
                         ack.call(responseObject);
                     });
                 }
             });
-
+            
             _socket.connect();
         }
         catch (Exception e)
@@ -123,17 +130,17 @@ public class Connector
             _connector.onError(e);
         }
     }
-
+    
     public CompletableFuture<JSONObject> login(String tokenSymbol, String clientWalletAddress, String clientPassword, JSONArray onlineServers)
     {
         CompletableFuture<JSONObject> future = new CompletableFuture<>();
         JSONObject sendObject = new JSONObject();
-
+        
         sendObject.put("symbol", tokenSymbol);
         sendObject.put("wallet", clientWalletAddress);
         sendObject.put("password", clientPassword);
         sendObject.put("servers", onlineServers);
-
+        
         _socket.emit("login", sendObject, new Ack()
         {
             @Override
@@ -142,7 +149,7 @@ public class Connector
                 try
                 {
                     JSONObject responseObject = (JSONObject) response[0];
-
+                    
                     future.complete(responseObject);
                 }
                 catch (Exception e)
@@ -154,29 +161,29 @@ public class Connector
                 }
             }
         });
-
-        return future.completeOnTimeout(new JSONObject().put("ok",false).put("error","Login request timed out"), 5, TimeUnit.SECONDS).exceptionally(e -> new JSONObject().put("ok", false).put("error", e.getMessage()));
+        
+        return future.completeOnTimeout(new JSONObject().put("ok", false).put("error", "Login request timed out"), 5, TimeUnit.SECONDS).exceptionally(e -> new JSONObject().put("ok", false).put("error", e.getMessage()));
     }
-
+    
     public void renewServers(JSONArray onlineServers)
     {
         _socket.emit("renewServers", onlineServers);
     }
-
+    
     public interface Interface
     {
         void onLogDeposit(String txHash, String from, String symbol, String amount, String server, String character);
-
+        
         void onLogWithdraw(String txHash, String to, String symbol, String amount, String server, String character, String refund);
-
+        
         void onRequest(JSONObject requestObject, Callback cb);
-
+        
         void onConnect();
-
+        
         void onDisconnect();
-
+        
         void onError(Exception e);
-
+        
         @FunctionalInterface
         interface Callback
         {

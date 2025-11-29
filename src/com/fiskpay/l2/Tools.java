@@ -39,11 +39,12 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 /**
  * @author Scrab
  */
-public class Tools {
-
+public class Tools
+{
+    
     /**
      * Generates a QR code image with a link to your blockchain panel and overlays a logo image in its center.
-     * 
+     * @param wallet the ethereum wallet the QR code will point to
      * @return The QR code as a BufferedImage.
      * @throws Exception If QR code generation or image processing fails.
      */
@@ -51,52 +52,46 @@ public class Tools {
     {
         int width = 256;
         int height = 256;
-
+        
         // --- 1. Get the Logo as BufferedImage ---
         BufferedImage logoImage = ImageIO.read(Tools.class.getResourceAsStream("/images/FiskPayLogo.png"));
-
+        
         // --- 2. Generate the QR Code matrix from text ---
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
         Map<EncodeHintType, Object> hints = new HashMap<>();
-        // Use high error correction to ensure QR remains scannable even with logo
-        // overlay
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-        // Sets the white border (quiet zone) around the QR code to 1 module width (default is 4)
         hints.put(EncodeHintType.MARGIN, 1);
-
+        
         BitMatrix bitMatrix = qrCodeWriter.encode("https://l2.fiskpay.com/" + wallet + "/", BarcodeFormat.QR_CODE, width, height, hints);
-
+        
         // --- 3. Paint the QR Code on a BufferedImage ---
         BufferedImage qrImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                // Black pixels for true bits, white pixels otherwise
                 qrImage.setRGB(x, y, bitMatrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
             }
         }
-
+        
         // --- 4. Overlay the logo on the QR Code ---
         int qrWidth = qrImage.getWidth();
         int qrHeight = qrImage.getHeight();
-        // Logo should be ~1/4 the size of the QR code
         int logoWidth = qrWidth / 4;
         int logoHeight = qrHeight / 4;
-        // Scale the logo image smoothly
+
         Image scaledLogo = logoImage.getScaledInstance(logoWidth, logoHeight, Image.SCALE_SMOOTH);
-        // Create a combined image
         BufferedImage combinedImage = new BufferedImage(qrWidth, qrHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = combinedImage.createGraphics();
-        // Draw the QR code first
+
         g.drawImage(qrImage, 0, 0, null);
-        // Compute centered position for the logo
+
         int centerX = (qrWidth - logoWidth) / 2;
         int centerY = (qrHeight - logoHeight) / 2;
-        // Draw the scaled logo on top of the QR code
+
         g.drawImage(scaledLogo, centerX, centerY, null);
         g.dispose();
-
+        
         return combinedImage;
     }
 }
