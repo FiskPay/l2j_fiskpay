@@ -77,8 +77,6 @@ public class Crypto implements IVoicedCommandHandler
             
             html.setHtml(sb.toString());
             activeChar.sendPacket(html);
-            
-            activeChar.sendPacket(new CreatureSay(null, ChatType.ANNOUNCEMENT, "", "[=" + Configuration.getLink() + "=]"));
         }
         
         return true;
