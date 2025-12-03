@@ -54,12 +54,8 @@ public class Crypto implements IVoicedCommandHandler
         
         if (command.equals("crypto"))
         {
-            PledgeCrest packet;
-            
-            packet = new PledgeCrest(CREST_ID_UPPER, Configuration.getQRCodeDataUpper());
-            activeChar.sendPacket(packet);
-            packet = new PledgeCrest(CREST_ID_LOWER, Configuration.getQRCodeDataLower());
-            activeChar.sendPacket(packet);
+            activeChar.sendPacket(new PledgeCrest(CREST_ID_UPPER, Configuration.getQRCodeDataUpper()));
+            activeChar.sendPacket(new PledgeCrest(CREST_ID_LOWER, Configuration.getQRCodeDataLower()));
             
             final NpcHtmlMessage html = new NpcHtmlMessage(1);
             final StringBuilder sb = new StringBuilder();

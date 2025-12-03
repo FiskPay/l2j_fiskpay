@@ -207,21 +207,24 @@ public class GSMethods
             
             if (inventoryItem != null)
             {
-                final int inventoryAmount = inventoryItem.getCount();
-                inventoryItem.setCount(inventoryAmount + itemAmount);
-                iu.addModifiedItem(inventoryItem);
+                synchronized (inventoryItem)
+                {
+                    inventoryItem.setCount(inventoryItem.getCount() + itemAmount);
+                    iu.addModifiedItem(inventoryItem);
+                }
             }
             else
             {
                 final Item newItem = player.getInventory().addItem(ItemProcessType.REWARD, Configuration.getRewardId(), itemAmount, player, null);
+                
                 iu.addNewItem(newItem);
             }
             
             player.sendInventoryUpdate(iu);
+            inventory.updateDatabase();
+            
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been deposited"));
-            
-            inventory.updateDatabase();
             
             return new JSONObject().put("ok", true);
         }
@@ -338,22 +341,25 @@ public class GSMethods
                 return new JSONObject().put("ok", false).put("error", "Not enough items in inventory");
             }
             
-            if (inventoryAmount == itemAmount)
+            synchronized (inventoryItem)
             {
-                player.getInventory().destroyItem(ItemProcessType.DESTROY, inventoryItem, inventoryAmount, player, null);
-                iu.addRemovedItem(inventoryItem);
-            }
-            else
-            {
-                inventoryItem.setCount(inventoryAmount - itemAmount);
-                iu.addModifiedItem(inventoryItem);
+                if (inventoryAmount == itemAmount)
+                {
+                    player.getInventory().destroyItem(ItemProcessType.DESTROY, inventoryItem, inventoryAmount, player, null);
+                    iu.addRemovedItem(inventoryItem);
+                }
+                else
+                {
+                    inventoryItem.setCount(inventoryAmount - itemAmount);
+                    iu.addModifiedItem(inventoryItem);
+                }
             }
             
             player.sendInventoryUpdate(iu);
+            inventory.updateDatabase();
+            
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been withdrawn"));
-            
-            inventory.updateDatabase();
             
             return new JSONObject().put("ok", true);
         }
@@ -476,9 +482,6 @@ public class GSMethods
     {
         final int rewardId = Integer.parseInt(rwdId);
         
-        byte[] qrCodeDataUpper = null;
-        byte[] qrCodeDataLower = null;
-        
         if (ItemData.getInstance().getTemplate(rewardId) == null)
         {
             return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward item (" + rwdId + ") does not exist");
@@ -489,24 +492,24 @@ public class GSMethods
             
             BufferedImage qrCodeImage = Tools.generateQRCodeImage(wallet);
             
-            final int w = qrCodeImage.getWidth();
-            final int h = qrCodeImage.getHeight();
-            final int half = h / 2;
+            final int width = qrCodeImage.getWidth();
+            final int height = qrCodeImage.getHeight();
+            final int half = height / 2;
             
-            BufferedImage upperHalf = qrCodeImage.getSubimage(0, 0, w, half);
-            BufferedImage lowerHalf = qrCodeImage.getSubimage(0, half, w, half);
-            qrCodeDataUpper = DDSConverter.convertToDDS(upperHalf).array();
-            qrCodeDataLower = DDSConverter.convertToDDS(lowerHalf).array();
+            BufferedImage upperHalf = qrCodeImage.getSubimage(0, 0, width, half);
+            BufferedImage lowerHalf = qrCodeImage.getSubimage(0, half, width, half);
+            final byte[] qrCodeDataUpper = DDSConverter.convertToDDS(upperHalf).array();
+            final byte[] qrCodeDataLower = DDSConverter.convertToDDS(lowerHalf).array();
+            
+            if (Configuration.setConfiguration(rewardId, wallet, symbol, qrCodeDataUpper, qrCodeDataLower))
+            {
+                return new JSONObject().put("ok", true);
+            }
         }
         catch (Exception e)
         {
             LOGGER.log(Level.WARNING, "QR Code error: " + e.getMessage(), e);
             LOGGER.log(Level.WARNING, "QR Code data could not be produced");
-        }
-        
-        if (Configuration.setConfiguration(rewardId, wallet, symbol, qrCodeDataUpper, qrCodeDataLower))
-        {
-            return new JSONObject().put("ok", true);
         }
         
         return new JSONObject().put("ok", false).put("error", "Blockchain configuration could not be set (maybe already set?)");

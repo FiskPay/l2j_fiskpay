@@ -205,22 +205,25 @@ public class GSMethods
             
             if (inventoryItem != null)
             {
-                final long inventoryAmount = inventoryItem.getCount();
-                inventoryItem.setCount(inventoryAmount + itemAmount);
-                iu.addModifiedItem(inventoryItem);
+                synchronized (inventoryItem)
+                {
+                    inventoryItem.setCount(inventoryItem.getCount() + itemAmount);
+                    iu.addModifiedItem(inventoryItem);
+                }
             }
             else
             {
                 final Item newItem = player.getInventory().addItem(ItemProcessType.REWARD, Configuration.getRewardId(), itemAmount, player, null);
+                
                 iu.addNewItem(newItem);
             }
             
             player.sendInventoryUpdate(iu);
+            inventory.updateDatabase();
+
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been deposited"));
-            
-            inventory.updateDatabase();
-            
+                        
             return new JSONObject().put("ok", true);
         }
         
@@ -336,22 +339,25 @@ public class GSMethods
                 return new JSONObject().put("ok", false).put("error", "Not enough items in inventory");
             }
             
-            if (inventoryAmount == itemAmount)
+            synchronized (inventoryItem)
             {
-                player.getInventory().destroyItem(ItemProcessType.DESTROY, inventoryItem, inventoryAmount, player, null);
-                iu.addRemovedItem(inventoryItem);
-            }
-            else
-            {
-                inventoryItem.setCount(inventoryAmount - itemAmount);
-                iu.addModifiedItem(inventoryItem);
+                if (inventoryAmount == itemAmount)
+                {
+                    player.getInventory().destroyItem(ItemProcessType.DESTROY, inventoryItem, inventoryAmount, player, null);
+                    iu.addRemovedItem(inventoryItem);
+                }
+                else
+                {
+                    inventoryItem.setCount(inventoryAmount - itemAmount);
+                    iu.addModifiedItem(inventoryItem);
+                }
             }
             
             player.sendInventoryUpdate(iu);
+            inventory.updateDatabase();
+            
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", "----------- New " + Configuration.getSymbol() + " transaction -----------"));
             player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Blockchain", String.valueOf(itemAmount) + " " + itemName + " has been withdrawn"));
-            
-            inventory.updateDatabase();
             
             return new JSONObject().put("ok", true);
         }
