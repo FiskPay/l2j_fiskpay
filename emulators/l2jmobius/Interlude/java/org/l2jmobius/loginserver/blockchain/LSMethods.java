@@ -29,7 +29,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -265,7 +264,7 @@ public class LSMethods
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setString(2, character);
                 ps.setInt(3, Integer.parseInt(refund));
-                ps.setLong(4, Long.parseLong(amount));
+                ps.setInt(4, Integer.parseInt(amount));
                 
                 if (ps.executeUpdate() > 0)
                 {
@@ -329,7 +328,7 @@ public class LSMethods
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setString(2, character);
                 ps.setInt(3, Integer.parseInt(refund));
-                ps.setLong(4, Long.parseLong(amount));
+                ps.setInt(4, Integer.parseInt(amount));
                 
                 try (ResultSet rs = ps.executeQuery())
                 {
@@ -360,7 +359,7 @@ public class LSMethods
                 ps.setInt(1, Integer.parseInt(srvId));
                 ps.setString(2, character);
                 ps.setInt(3, Integer.parseInt(refund));
-                ps.setLong(4, Long.parseLong(amount));
+                ps.setInt(4, Integer.parseInt(amount));
                 
                 return ps.executeUpdate() > 0;
             }
@@ -389,7 +388,7 @@ public class LSMethods
                 ps.setInt(2, Integer.parseInt(srvId));
                 ps.setString(3, character);
                 ps.setString(4, from);
-                ps.setLong(5, Long.parseLong(amount));
+                ps.setInt(5, Integer.parseInt(amount));
                 ps.executeUpdate();
                 
                 return true;
@@ -419,7 +418,7 @@ public class LSMethods
                 ps.setInt(2, Integer.parseInt(srvId));
                 ps.setString(3, character);
                 ps.setString(4, to);
-                ps.setLong(5, Long.parseLong(amount));
+                ps.setInt(5, Integer.parseInt(amount));
                 ps.executeUpdate();
                 
                 return true;
@@ -461,12 +460,12 @@ public class LSMethods
     
     protected static CompletableFuture<JSONObject> addToCharacter(String srvId, String character, String amount)
     {
-        return sendRequestToGS(srvId, "addToCharacter", new JSONArray(Arrays.asList(character, amount)));
+        return sendRequestToGS(srvId, "addToCharacter", new JSONArray().put(character).put(amount));
     }
     
     protected static CompletableFuture<JSONObject> removeFromCharacter(String srvId, String character, String amount)
     {
-        return sendRequestToGS(srvId, "removeFromCharacter", new JSONArray(Arrays.asList(character, amount)));
+        return sendRequestToGS(srvId, "removeFromCharacter", new JSONArray().put(character).put(amount));
     }
     
     protected static CompletableFuture<JSONObject> getGameServerMode(String srvId)
@@ -528,7 +527,7 @@ public class LSMethods
                 {
                     try (PreparedStatement ps = con.prepareStatement("UPDATE gameservers SET balance = ? WHERE server_id = ?;"))
                     {
-                        ps.setLong(1, Long.parseLong(responseObject.getString("data")));
+                        ps.setInt(1, Integer.parseInt(responseObject.getString("data")));
                         ps.setInt(2, Integer.parseInt(srvId));
                         ps.executeUpdate();
                     }
@@ -552,7 +551,7 @@ public class LSMethods
         });
     }
     
-    protected static void refundExpitedWithdraws(String srvId)
+    protected static void refundExpiredWithdrawals(String srvId)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {

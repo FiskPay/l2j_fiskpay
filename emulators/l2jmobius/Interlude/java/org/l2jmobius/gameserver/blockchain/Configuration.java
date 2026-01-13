@@ -21,31 +21,48 @@
 
 package org.l2jmobius.gameserver.blockchain;
 
+import com.fiskpay.l2.Tools;
+
+import java.awt.image.BufferedImage;
+
+import org.l2jmobius.gameserver.data.xml.ItemData;
+import org.l2jmobius.gameserver.util.DDSConverter;
+
 /**
  * @author Scrab
  */
 public class Configuration
 {
-    private static boolean _set = false;
+    private static boolean _isSet = false;
     private static int _rewardId;
+    private static String _rewardName;
     private static String _wallet;
     private static String _symbol;
     private static byte[] _qrCodeDataUpper;
     private static byte[] _qrCodeDataLower;
     
-    protected static boolean setConfiguration(int rewardId, String wallet, String symbol, byte[] qrCodeDataUpper, byte[] qrCodeDataLower)
+    protected static boolean set(int rewardId, String wallet, String symbol)
     {
-        if (!isSet())
+        if (!isSet() && ItemData.getInstance().getTemplate(rewardId) != null)
         {
             _rewardId = rewardId;
+            _rewardName = ItemData.getInstance().getTemplate(rewardId).getName();
             _wallet = wallet;
             _symbol = symbol;
             
             try
             {
-                _qrCodeDataUpper = qrCodeDataUpper;
-                _qrCodeDataLower = qrCodeDataLower;
-                _set = true;
+                final BufferedImage qrCodeImage = Tools.generateQRCodeImage(wallet);            
+                final int width = qrCodeImage.getWidth();
+                final int height = qrCodeImage.getHeight();
+                final int half = height / 2;                
+                final BufferedImage upperHalf = qrCodeImage.getSubimage(0, 0, width, half);
+                final BufferedImage lowerHalf = qrCodeImage.getSubimage(0, half, width, height - half);
+
+                _qrCodeDataUpper = DDSConverter.convertToDDS(upperHalf).array();
+                _qrCodeDataLower = DDSConverter.convertToDDS(lowerHalf).array();
+
+                _isSet = true;
             }
             catch (Exception e)
             {
@@ -53,17 +70,22 @@ public class Configuration
             }
         }
         
-        return _set;
+        return _isSet;
     }
     
     public static boolean isSet()
     {
-        return _set;
+        return _isSet;
     }
     
     public static int getRewardId()
     {
         return _rewardId;
+    }
+
+    public static String getRewardName()
+    {
+        return _rewardName;
     }
     
     public static String getWallet()

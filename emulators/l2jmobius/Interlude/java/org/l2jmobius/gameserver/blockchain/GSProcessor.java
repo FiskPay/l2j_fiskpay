@@ -104,7 +104,7 @@ public class GSProcessor
             }
             default:
             {
-                responseObject = new JSONObject().put("ok", false).put("error", "GS request subject unknown");
+                responseObject = new JSONObject().put("ok", false).put("error", "Unknown request to Game Server. Subject: " + subject);
                 break;
             }
         }

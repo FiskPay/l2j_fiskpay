@@ -204,7 +204,7 @@ public class BlockchainClient implements Connector.Interface
         _connector.renewServers(new JSONArray(_onlineServers));
     }
     
-    public boolean isSigned()
+    public boolean isSignedIn()
     {
         return _signedIn;
     }
@@ -224,7 +224,7 @@ public class BlockchainClient implements Connector.Interface
         {
             for (String srvId : _onlineServers)
             {
-                LSProcessor.refundExpitedWithdraws(srvId);
+                LSProcessor.refundExpiredWithdrawals(srvId);
             }
         }, 0, 150000);
         

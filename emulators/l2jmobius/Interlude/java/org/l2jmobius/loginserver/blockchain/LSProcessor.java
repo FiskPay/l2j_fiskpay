@@ -81,7 +81,7 @@ public class LSProcessor
             }
             default:
             {
-                return new JSONObject().put("ok", false).put("error", "Unknown subject: " + subject);
+                return new JSONObject().put("ok", false).put("error", "Unknown request to Login Server. Subject: " + subject);
             }
         }
     }
@@ -198,7 +198,7 @@ public class LSProcessor
             }
             default:
             {
-                return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "LS request subject unknown"));
+                return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Unknown request to forward to Game Server. Subject: " + subject));
             }
         }
     }
@@ -228,9 +228,9 @@ public class LSProcessor
         LSMethods.setConfig(srvId, wallet, symbol);
     }
     
-    public static void refundExpitedWithdraws(String srvId)
+    public static void refundExpiredWithdrawals(String srvId)
     {
-        LSMethods.refundExpitedWithdraws(srvId);
+        LSMethods.refundExpiredWithdrawals(srvId);
     }
     
     public static void updateGameServerBalanceToDB(String srvId)
