@@ -201,6 +201,8 @@ public class GSMethods
         {
             final PlayerInventory inventory = player.getInventory();
             final Item item = inventory.addItem(ItemProcessType.REWARD, Configuration.getRewardId(), rewardAmount, player, null);
+            
+            inventory.updateDatabase();
 
             final InventoryUpdate iu = new InventoryUpdate();
             
@@ -329,7 +331,8 @@ public class GSMethods
                 return new JSONObject().put("ok", false).put("error", "Insufficient " + Configuration.getRewardName() + " balance (Having: " + String.valueOf(inventoryAmount) + ", Need: " + String.valueOf(removeAmount) + ")");
             }
 
-            inventory.destroyItem(ItemProcessType.DESTROY, item, removeAmount, player, null);            
+            inventory.destroyItem(ItemProcessType.DESTROY, item, removeAmount, player, null);
+            inventory.updateDatabase();
 
             final InventoryUpdate iu = new InventoryUpdate();
             
