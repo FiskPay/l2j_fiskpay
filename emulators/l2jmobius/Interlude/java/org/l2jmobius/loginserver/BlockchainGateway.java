@@ -1,59 +1,478 @@
 /*
-* Copyright (c) 2025 FiskPay
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be
-* included in all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-* IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+ * Copyright (c) 2026 FiskPay
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+ * IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+package org.l2jmobius.loginserver;
 
-package org.l2jmobius.loginserver.blockchain;
+import com.fiskpay.l2.Connector;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.l2jmobius.commons.database.DatabaseFactory;
+import org.l2jmobius.commons.threads.ThreadPool;
+import org.l2jmobius.loginserver.GameServerTable.GameServerInfo;
+import org.l2jmobius.loginserver.config.BlockchainConfig;
+import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceive;
 
 import java.nio.charset.StandardCharsets;
-
 import java.security.MessageDigest;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-
 import java.util.Base64;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import org.l2jmobius.commons.database.DatabaseFactory;
-import org.l2jmobius.loginserver.GameServerTable;
-import org.l2jmobius.loginserver.GameServerTable.GameServerInfo;
-import org.l2jmobius.loginserver.GameServerThread;
-import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceive;
+import java.util.regex.Pattern;
 
 /**
  * @author Scrab
  */
-public class LSMethods
+public class BlockchainGateway implements Connector.Interface
 {
-    private static final Logger LOGGER = Logger.getLogger(LSMethods.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(BlockchainGateway.class.getName());
+    private static final Logger BLOCKCHAIN_LOGGER = Logger.getLogger("blockchain");
+    
+    private static final String SYMBOL = BlockchainConfig.SYMBOL;
+    private static final String WALLET = BlockchainConfig.WALLET;
+    private static final String PASSWORD = BlockchainConfig.PASSWORD;
+    
     private static final AtomicInteger _counter = new AtomicInteger(0);
     
-    protected static JSONObject getAccounts(String walletAddress)
+    private final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
+    private final CompletableFuture<Void> _connectionResult = new CompletableFuture<>();
+    
+    private boolean _signedIn = false;
+    
+    private Connector _connector;
+    
+    @Override
+    public void onLogDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
+    {
+        logDeposit(txHash, from, symbol, amount, srvId, character).thenAccept((logResult) ->
+        {
+            if (logResult.getBoolean("ok") == true)
+            {
+                BLOCKCHAIN_LOGGER.info("Deposit on " + getServerName(srvId) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
+            }
+            else
+            {
+                BLOCKCHAIN_LOGGER.warning("--------------------------------------- Failed Deposit Start ---------------------------------------");
+                BLOCKCHAIN_LOGGER.warning("TxHash:   " + txHash);
+                BLOCKCHAIN_LOGGER.warning("From:     " + from);
+                BLOCKCHAIN_LOGGER.warning("To:       " + character);
+                BLOCKCHAIN_LOGGER.warning("Server:   " + getServerName(srvId));
+                BLOCKCHAIN_LOGGER.warning("Amount:   " + amount);
+                BLOCKCHAIN_LOGGER.warning("Token:    " + symbol);
+                BLOCKCHAIN_LOGGER.warning("Message:  " + logResult.getString("error"));
+                BLOCKCHAIN_LOGGER.warning("Action:   You must manualy reward " + amount + " " + symbol + " to player");
+                BLOCKCHAIN_LOGGER.warning("---------------------------------------- Failed Deposit End ----------------------------------------");
+            }
+        });
+    }
+    
+    @Override
+    public void onLogWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
+    {
+        final JSONObject logResult = logWithdraw(txHash, to, symbol, amount, srvId, character, refund);
+        
+        if (logResult.getBoolean("ok") == true)
+        {
+            BLOCKCHAIN_LOGGER.info("Withdrawal on " + getServerName(srvId) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
+        }
+        else
+        {
+            BLOCKCHAIN_LOGGER.warning("-------------------------------------- Failed Withdrawal Start -------------------------------------");
+            BLOCKCHAIN_LOGGER.warning("TxHash:   " + txHash);
+            BLOCKCHAIN_LOGGER.warning("From:     " + character);
+            BLOCKCHAIN_LOGGER.warning("To:       " + to);
+            BLOCKCHAIN_LOGGER.warning("Server:   " + getServerName(srvId));
+            BLOCKCHAIN_LOGGER.warning("Amount:   " + amount);
+            BLOCKCHAIN_LOGGER.warning("Token:    " + symbol);
+            BLOCKCHAIN_LOGGER.warning("Message:  " + logResult.getString("error"));
+            BLOCKCHAIN_LOGGER.warning("Action:   You may manualy remove " + amount + " " + symbol + " from player");
+            BLOCKCHAIN_LOGGER.warning("--------------------------------------- Failed Withdrawal End --------------------------------------");
+        }
+    }
+    
+    @Override
+    public void onRequest(JSONObject requestObject, Callback cb)
+    {
+        if (requestObject.has("id") && requestObject.get("id") instanceof String && requestObject.has("subject") && requestObject.get("subject") instanceof String && requestObject.has("data") && requestObject.get("data") instanceof JSONObject)
+        {
+            final String srvId = requestObject.getString("id");
+            
+            if ("ls".equals(srvId)) // Request must be handled by the Login Server
+            {
+                cb.resolve(processLSRequest(requestObject)); // Proccess the request and send it to the FiskPay server
+            }
+            else if (Pattern.matches("^([1-9]|[1-9][0-9]|1[01][0-9]|12[0-7])$", srvId)) // Forward the request to the appropriate Game Server. When a response is received from the Game Server, Login Server will handle it
+            {
+                if (_onlineServers.contains(srvId))
+                {
+                    processGSRequest(requestObject).thenAccept(cb::resolve); // Forward the request to the Game Server and send the response back to the FiskPay server
+                }
+                else
+                {
+                    cb.resolve(new JSONObject().put("ok", false).put("error", "Game server " + getServerName(srvId) + " is not available"));
+                }
+            }
+            else
+            {
+                cb.resolve(new JSONObject().put("ok", false).put("error", "Request object has an illegal id value"));
+            }
+        }
+    }
+    
+    @Override
+    public void onConnect()
+    {
+        LOGGER.info(getClass().getSimpleName() + ": Connection established");
+        LOGGER.info(getClass().getSimpleName() + ": Signing in...");
+        
+        _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
+        {
+            if (responseObject.getBoolean("ok") == true)
+            {
+                LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
+                _signedIn = true;
+            }
+            else if (responseObject.has("error") == true)
+            {
+                LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("error"));
+            }
+            else
+            {
+                LOGGER.info(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
+            }
+            
+            if (!_connectionResult.isDone())
+            {
+                _connectionResult.complete(null);
+            }
+            
+        }).exceptionally((e) ->
+        {
+            LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
+            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+            
+            return null;
+        });
+    }
+    
+    @Override
+    public void onDisconnect()
+    {
+        LOGGER.warning(getClass().getSimpleName() + ": Service temporary unavailable");
+    }
+    
+    @Override
+    public void onError(Exception e)
+    {
+        LOGGER.warning(getClass().getSimpleName() + ": Connector error");
+        LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+    }
+    
+    public void renewServers(int serverId, boolean isConnected)
+    {
+        renewServers(Integer.toString(serverId), isConnected);
+    }
+    
+    public void renewServers(String srvId, boolean isConnected)
+    {
+        if (isConnected && !_onlineServers.contains(srvId))
+        {
+            _onlineServers.add(srvId);
+            setConfig(srvId, WALLET, SYMBOL);
+        }
+        else if (!isConnected && _onlineServers.contains(srvId))
+        {
+            _onlineServers.remove(srvId);
+        }
+        
+        _connector.renewServers(new JSONArray(_onlineServers));
+    }
+    
+    public boolean isSignedIn()
+    {
+        return _signedIn;
+    }
+    
+    public static BlockchainGateway getInstance()
+    {
+        return SingletonHolder.INSTANCE;
+    }
+    
+    private BlockchainGateway()
+    {
+        LOGGER.info(getClass().getSimpleName() + ": Connecting...");
+        
+        _connector = new Connector(this);
+        
+        ThreadPool.scheduleAtFixedRate(() ->
+        {
+            for (String srvId : _onlineServers)
+            {
+                updateGameServerBalanceToDB(srvId);
+            }
+        }, 0, 150000);
+        
+        ThreadPool.scheduleAtFixedRate(() ->
+        {
+            for (String srvId : _onlineServers)
+            {
+                refundExpiredWithdrawals(srvId);
+            }
+        }, 75000, 150000);
+        
+        _connectionResult.completeOnTimeout(null, 10, TimeUnit.SECONDS);
+        
+        try
+        {
+            _connectionResult.get();
+        }
+        catch (Exception e)
+        {
+            LOGGER.warning(getClass().getSimpleName() + ": Error while connecting to service");
+            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+    
+    private static class SingletonHolder
+    {
+        private static final BlockchainGateway INSTANCE = new BlockchainGateway();
+    }
+    
+    private static String getServerName(String srvId)
+    {
+        return getServerName(Integer.parseInt(srvId));
+    }
+    
+    private static String getServerName(int serverId)
+    {
+        final GameServerTable gsTable = GameServerTable.getInstance();
+        
+        if (gsTable != null)
+        {
+            return gsTable.getServerNameById(serverId);
+        }
+        
+        return "Unknown";
+    }
+    
+    private static JSONObject processLSRequest(JSONObject requestObject)
+    {
+        final String subject = requestObject.getString("subject");
+        final JSONObject data = requestObject.getJSONObject("data");
+        
+        switch (subject)
+        {
+            case "getAccs":
+            {
+                if (!data.has("walletAddress"))
+                {
+                    return new JSONObject().put("ok", false).put("error", "walletAddress undefined");
+                }
+                
+                if (!(data.get("walletAddress") instanceof String))
+                {
+                    return new JSONObject().put("ok", false).put("error", "walletAddress not a String");
+                }
+                
+                final String walletAddress = data.getString("walletAddress");
+                
+                if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", walletAddress))
+                {
+                    return new JSONObject().put("ok", false).put("error", "Improper walletAddress");
+                }
+                
+                return getAccounts(walletAddress); // Get wallet accounts from Login Server database
+            }
+            case "getClientBal":
+            {
+                return getClientBalance(); // Get total balance from all Game Servers
+            }
+            case "linkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
+            {
+                final String username = data.getString("username");
+                final String password = data.getString("password");
+                final String walletAddress = data.getString("walletAddress");
+                
+                return linkAccount(username, password, walletAddress); // Links the account to the wallet address
+            }
+            case "unlinkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
+            {
+                final String username = data.getString("username");
+                final String password = data.getString("password");
+                final String walletAddress = data.getString("walletAddress");
+                
+                return unlinkAccount(username, password, walletAddress); // Unlinks the account from the wallet address
+            }
+            default:
+            {
+                return new JSONObject().put("ok", false).put("error", "Unknown request to Login Server. Subject: " + subject);
+            }
+        }
+    }
+    
+    private static CompletableFuture<JSONObject> processGSRequest(JSONObject requestObject)
+    {
+        final String srvId = requestObject.getString("id");
+        final String subject = requestObject.getString("subject");
+        final JSONObject data = requestObject.getJSONObject("data");
+        
+        switch (subject)
+        {
+            case "getChars":
+            {
+                if (!data.has("username"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "username undefined"));
+                }
+                
+                if (!(data.get("username") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "username not a String"));
+                }
+                
+                final String username = data.getString("username");
+                
+                return getAccountCharacters(srvId, username);
+            }
+            case "getCharBal":
+            {
+                if (!data.has("character"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character undefined"));
+                }
+                
+                if (!(data.get("character") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character not a String"));
+                }
+                
+                final String character = data.getString("character");
+                
+                return getCharacterBalance(srvId, character);
+            }
+            case "isOffline":
+            {
+                if (!data.has("character"))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character undefined"));
+                }
+                
+                if (!(data.get("character") instanceof String))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character not a String"));
+                }
+                
+                final String character = data.getString("character");
+                
+                return isCharacterOffline(srvId, character);
+            }
+            case "getGSMode":
+            {
+                return getGameServerMode(srvId);
+            }
+            case "requestWithdraw": // This subject's requestObject is validated on the FiskPay Service, no checks needed
+            {
+                final String walletAddress = data.getString("walletAddress");
+                final String character = data.getString("character");
+                final String refund = data.getString("refund");
+                final String amount = data.getString("amount");
+                
+                if (!isNewWithdraw(srvId, character, refund, amount))
+                {
+                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Trying to exploit? Help us grow, report your findings"));
+                }
+                
+                return getCharacterUsername(srvId, character).thenCompose((responseObject0) ->
+                {
+                    if (responseObject0.has("error"))
+                    {
+                        return CompletableFuture.completedFuture(responseObject0);
+                    }
+                    
+                    final String username = responseObject0.getString("data");
+                    
+                    if (!isWalletOwner(username, walletAddress))
+                    {
+                        return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Wallet ownership verification failed"));
+                    }
+                    
+                    return removeFromCharacter(srvId, character, amount).thenCompose((responseObject1) ->
+                    {
+                        if (responseObject1.has("error"))
+                        {
+                            return CompletableFuture.completedFuture(responseObject1);
+                        }
+                        
+                        if (!createNewWithdraw(srvId, character, refund, amount))
+                        {
+                            return addToCharacter(srvId, character, amount, "0").thenApply((responseObject2) ->
+                            {
+                                if (responseObject2.getBoolean("ok") == true)
+                                {
+                                    return new JSONObject().put("ok", false).put("error", "Refund could not be created. Withdrawal reverted");
+                                }
+                                
+                                return responseObject2;
+                            });
+                        }
+                        
+                        return CompletableFuture.completedFuture(new JSONObject().put("ok", true));
+                    });
+                });
+            }
+            default:
+            {
+                return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Unknown request to forward to Game Server. Subject: " + subject));
+            }
+        }
+    }
+    
+    private static CompletableFuture<JSONObject> logDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
+    {
+        if (logDepositToDB(txHash, from, symbol, amount, srvId, character) == true)
+        {
+            return addToCharacter(srvId, character, amount, "1");
+        }
+        
+        return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "logDepositToDB in java had an error"));
+    }
+    
+    private static JSONObject logWithdraw(String txHash, String to, String symbol, String amount, String srvId, String character, String refund)
+    {
+        if (logWithdrawToDB(txHash, to, symbol, amount, srvId, character) == true)
+        {
+            return finalizeWithdraw(srvId, character, refund, amount);
+        }
+        
+        return new JSONObject().put("ok", false).put("error", "logWithdrawToDB in java had an error");
+    }
+    
+    private static JSONObject getAccounts(String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -91,7 +510,7 @@ public class LSMethods
         }
     }
     
-    protected static JSONObject getClientBalance()
+    private static JSONObject getClientBalance()
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -125,7 +544,7 @@ public class LSMethods
         }
     }
     
-    protected static JSONObject linkAccount(String username, String password, String walletAddress)
+    private static JSONObject linkAccount(String username, String password, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection();)
         {
@@ -188,7 +607,7 @@ public class LSMethods
         }
     }
     
-    protected static JSONObject unlinkAccount(String username, String password, String walletAddress)
+    private static JSONObject unlinkAccount(String username, String password, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -255,7 +674,7 @@ public class LSMethods
         }
     }
     
-    protected static JSONObject finalizeWithdraw(String srvId, String character, String refund, String amount)
+    private static JSONObject finalizeWithdraw(String srvId, String character, String refund, String amount)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -290,7 +709,7 @@ public class LSMethods
         }
     }
     
-    protected static boolean isWalletOwner(String username, String walletAddress)
+    private static boolean isWalletOwner(String username, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -319,7 +738,7 @@ public class LSMethods
         return false;
     }
     
-    protected static boolean isNewWithdraw(String srvId, String character, String refund, String amount)
+    private static boolean isNewWithdraw(String srvId, String character, String refund, String amount)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -350,7 +769,7 @@ public class LSMethods
         return false;
     }
     
-    protected static boolean createNewWithdraw(String srvId, String character, String refund, String amount)
+    private static boolean createNewWithdraw(String srvId, String character, String refund, String amount)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -378,7 +797,7 @@ public class LSMethods
         return false;
     }
     
-    protected static boolean logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
+    private static boolean logDepositToDB(String txHash, String from, String symbol, String amount, String srvId, String character)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -408,7 +827,7 @@ public class LSMethods
         return false;
     }
     
-    protected static boolean logWithdrawToDB(String txHash, String to, String symbol, String amount, String srvId, String character)
+    private static boolean logWithdrawToDB(String txHash, String to, String symbol, String amount, String srvId, String character)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -438,42 +857,42 @@ public class LSMethods
         return false;
     }
     
-    protected static CompletableFuture<JSONObject> getAccountCharacters(String srvId, String username)
+    private static CompletableFuture<JSONObject> getAccountCharacters(String srvId, String username)
     {
         return sendRequestToGS(srvId, "getAccountCharacters", new JSONArray().put(username));
     }
     
-    protected static CompletableFuture<JSONObject> getCharacterBalance(String srvId, String character)
+    private static CompletableFuture<JSONObject> getCharacterBalance(String srvId, String character)
     {
         return sendRequestToGS(srvId, "getCharacterBalance", new JSONArray().put(character));
     }
     
-    protected static CompletableFuture<JSONObject> isCharacterOffline(String srvId, String character)
+    private static CompletableFuture<JSONObject> isCharacterOffline(String srvId, String character)
     {
         return sendRequestToGS(srvId, "isCharacterOffline", new JSONArray().put(character));
     }
     
-    protected static CompletableFuture<JSONObject> getCharacterUsername(String srvId, String character)
+    private static CompletableFuture<JSONObject> getCharacterUsername(String srvId, String character)
     {
         return sendRequestToGS(srvId, "getCharacterUsername", new JSONArray().put(character));
     }
     
-    protected static CompletableFuture<JSONObject> addToCharacter(String srvId, String character, String amount)
+    private static CompletableFuture<JSONObject> addToCharacter(String srvId, String character, String amount, String isDeposit)
     {
-        return sendRequestToGS(srvId, "addToCharacter", new JSONArray().put(character).put(amount));
+        return sendRequestToGS(srvId, "addToCharacter", new JSONArray().put(character).put(amount).put(isDeposit));
     }
     
-    protected static CompletableFuture<JSONObject> removeFromCharacter(String srvId, String character, String amount)
+    private static CompletableFuture<JSONObject> removeFromCharacter(String srvId, String character, String amount)
     {
         return sendRequestToGS(srvId, "removeFromCharacter", new JSONArray().put(character).put(amount));
     }
     
-    protected static CompletableFuture<JSONObject> getGameServerMode(String srvId)
+    private static CompletableFuture<JSONObject> getGameServerMode(String srvId)
     {
         return sendRequestToGS(srvId, "getGameServerMode", new JSONArray());
     }
     
-    protected static void setConfig(String srvId, String wallet, String symbol)
+    private static void setConfig(String srvId, String wallet, String symbol)
     {
         String rwdId = "0";
         
@@ -503,7 +922,7 @@ public class LSMethods
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
         
-        sendRequestToGS(srvId, "setConfig", new JSONArray().put(rwdId).put(wallet).put(symbol)).thenAccept((responseObject) ->
+        sendRequestToGS(srvId, "setConfig", new JSONArray().put(wallet).put(symbol).put(rwdId)).thenAccept((responseObject) ->
         {
             if (responseObject.getBoolean("ok") == true)
             {
@@ -517,7 +936,7 @@ public class LSMethods
         });
     }
     
-    protected static void updateGameServerBalanceToDB(String srvId)
+    private static void updateGameServerBalanceToDB(String srvId)
     {
         sendRequestToGS(srvId, "getGameServerBalance", new JSONArray()).thenAccept((responseObject) ->
         {
@@ -551,7 +970,7 @@ public class LSMethods
         });
     }
     
-    protected static void refundExpiredWithdrawals(String srvId)
+    private static void refundExpiredWithdrawals(String srvId)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -570,7 +989,7 @@ public class LSMethods
                         final String amount = rs.getString("amount");
                         final String refund = rs.getString("refund");
                         
-                        addToCharacter(srvId, character, amount).thenAccept(responseObject1 ->
+                        addToCharacter(srvId, character, amount, "0").thenAccept(responseObject1 ->
                         {
                             if (responseObject1.getBoolean("ok") == true)
                             {

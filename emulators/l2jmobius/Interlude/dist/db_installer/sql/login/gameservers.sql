@@ -1,6 +1,6 @@
 -- Create the table if it doesn't exist
 CREATE TABLE IF NOT EXISTS `gameservers` (
-  `server_id` INT(11) NOT NULL DEFAULT 0,
+  `server_id` INT(3) NOT NULL DEFAULT 0,
   PRIMARY KEY (`server_id`)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 

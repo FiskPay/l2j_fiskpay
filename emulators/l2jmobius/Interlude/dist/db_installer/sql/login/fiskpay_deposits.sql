@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS `fiskpay_deposits` (
   `character_name` VARCHAR(45) NOT NULL,
   `wallet_address` VARCHAR(42) NOT NULL,
   `amount` INT UNSIGNED NOT NULL,
+  `deposit_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`transaction_hash`)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
