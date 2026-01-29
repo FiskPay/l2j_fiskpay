@@ -369,7 +369,7 @@ public class BlockchainEndpoint
             return new JSONObject().put("ok", false).put("error", "Blockchain configuration is not set");
         }
         
-        int playerId = CharInfoTable.getInstance().getIdByName(character);
+        final int playerId = CharInfoTable.getInstance().getIdByName(character);
         
         if (playerId == -1)
         {
@@ -494,7 +494,7 @@ public class BlockchainEndpoint
             return new JSONObject().put("ok", false).put("error", "Blockchain configuration is not set");
         }
         
-        int playerId = CharInfoTable.getInstance().getIdByName(character);
+        final int playerId = CharInfoTable.getInstance().getIdByName(character);
         
         if (playerId == -1)
         {
