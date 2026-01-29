@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 L2jMobius
+ * Copyright (c) 2026 FiskPay
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 
 import org.l2jmobius.commons.util.StringUtil;
 
+/**
+ * @author Scrab
+ */
 public class BlockchainFormatter extends Formatter
 {
 	private final SimpleDateFormat _dateFormat = new SimpleDateFormat("dd MMM H:mm:ss");
@@ -48,4 +51,5 @@ public class BlockchainFormatter extends Formatter
 		
 		output.append(System.lineSeparator());
 		return output.toString();
-	}}
+	}
+}

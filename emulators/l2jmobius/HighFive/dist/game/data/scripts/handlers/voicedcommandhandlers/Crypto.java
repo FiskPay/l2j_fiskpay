@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025 FiskPay
+* Copyright (c) 2026 FiskPay
 * 
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -21,14 +21,12 @@
 
 package handlers.voicedcommandhandlers;
 
-import org.l2jmobius.gameserver.blockchain.Configuration;
-import org.l2jmobius.gameserver.network.enums.ChatType;
+import org.l2jmobius.gameserver.BlockchainEndpoint;
+import org.l2jmobius.gameserver.config.ServerConfig;
 import org.l2jmobius.gameserver.handler.IVoicedCommandHandler;
 import org.l2jmobius.gameserver.model.actor.Player;
-import org.l2jmobius.gameserver.network.serverpackets.CreatureSay;
 import org.l2jmobius.gameserver.network.serverpackets.NpcHtmlMessage;
 import org.l2jmobius.gameserver.network.serverpackets.PledgeCrest;
-import org.l2jmobius.Config;
 import org.l2jmobius.commons.util.StringUtil;
 
 /**
@@ -41,38 +39,35 @@ public class Crypto implements IVoicedCommandHandler
         "crypto"
     };
     
-    private static final int CREST_ID = 700001;
+    private static final int CREST_ID = 700100;
     
     @Override
     public boolean onCommand(String command, Player activeChar, String params)
     {
-        if (activeChar == null || !Configuration.isSet())
+        if (activeChar == null || !BlockchainEndpoint.isSet())
         {
             return false;
         }
         
         if (command.equals("crypto"))
         {
-            final PledgeCrest packet = new PledgeCrest(CREST_ID, Configuration.getQRCodeData());
-            activeChar.sendPacket(packet);
+            activeChar.sendPacket(new PledgeCrest(CREST_ID, BlockchainEndpoint.getQRCodeData()));
             
-            final NpcHtmlMessage html = new NpcHtmlMessage(1);
+            final NpcHtmlMessage html = new NpcHtmlMessage();
             final StringBuilder sb = new StringBuilder();
             
             StringUtil.append(sb, "<html>");
             StringUtil.append(sb, "<title>Crypto Panel</title>");
             StringUtil.append(sb, "<body><center><br><br><img src=\"L2UI_CH3.herotower_deco\" width=\"256\" height=\"32\">");
-            StringUtil.append(sb, "Scan the QR code, or click the link in your chat");
+            StringUtil.append(sb, "Scan the QR code to open the panel");
             StringUtil.append(sb, "<br>");
-            StringUtil.append(sb, "<img src=\"Crest.crest_" + Config.SERVER_ID + "_" + CREST_ID + "\" width=256 height=256>");
+            StringUtil.append(sb, "<img src=\"Crest.crest_" + ServerConfig.SERVER_ID + "_" + CREST_ID + "\" width=\"256\" height=\"256\">");
             StringUtil.append(sb, "<br>");
             StringUtil.append(sb, "</center></body>");
             StringUtil.append(sb, "</html>");
             
             html.setHtml(sb.toString());
             activeChar.sendPacket(html);
-            
-            activeChar.sendPacket(new CreatureSay(null, ChatType.ANNOUNCEMENT, "", "[=" + Configuration.getLink() + "=]"));
         }
         
         return true;
