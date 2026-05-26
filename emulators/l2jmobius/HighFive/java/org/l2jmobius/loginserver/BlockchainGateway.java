@@ -63,7 +63,7 @@ public class BlockchainGateway implements Connector.Interface
     private final CompletableFuture<Void> _connectionResult = new CompletableFuture<>();
     
     private boolean _signedIn = false;
-    private boolean _sceduledServerUpdateSend = false;
+    private boolean _scheduledServerUpdate = false;
     
     private Connector _connector;
     
@@ -212,10 +212,10 @@ public class BlockchainGateway implements Connector.Interface
         }
         
         // Check if a scheduled server update has NOT already been queued
-        if (!_sceduledServerUpdateSend)
+        if (!_scheduledServerUpdate)
         {
             // Mark that an update has been scheduled to prevent duplicate scheduling
-            _sceduledServerUpdateSend = true;
+            _scheduledServerUpdate = true;
             
             // Schedule the update with a delay to group multiple rapid server changes into a single request (e.g., during Login Server restart)
             ThreadPool.schedule(() ->
@@ -224,7 +224,7 @@ public class BlockchainGateway implements Connector.Interface
                 _connector.renewServers(new JSONArray(_onlineServers));
                 
                 // Reset the flag to allow future updates to be scheduled
-                _sceduledServerUpdateSend = false;
+                _scheduledServerUpdate = false;
                 
             }, 5000); // Execute after 5 seconds
         }
