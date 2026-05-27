@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,10 +61,10 @@ public class BlockchainGateway implements Connector.Interface
     private static final AtomicInteger _counter = new AtomicInteger(0);
     
     private final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
-    private final CompletableFuture<Void> _connectionResult = new CompletableFuture<>();
+    private final CompletableFuture<Boolean> _connectionResult = new CompletableFuture<>();
+    private final AtomicBoolean scheduledServerUpdate = new AtomicBoolean(false);
     
     private boolean _signedIn = false;
-    private boolean _scheduledServerUpdate = false;
     
     private Connector _connector;
     
@@ -72,7 +73,7 @@ public class BlockchainGateway implements Connector.Interface
     {
         logDeposit(txHash, from, symbol, amount, srvId, character).thenAccept((logResult) ->
         {
-            if (logResult.getBoolean("ok") == true)
+            if (logResult.optBoolean("ok", false))
             {
                 BLOCKCHAIN_LOGGER.info("Deposit on " + getServerName(srvId) + ": " + from + " -> " + character + " = " + amount + " " + symbol);
             }
@@ -86,7 +87,7 @@ public class BlockchainGateway implements Connector.Interface
                 BLOCKCHAIN_LOGGER.warning("Amount:   " + amount);
                 BLOCKCHAIN_LOGGER.warning("Token:    " + symbol);
                 BLOCKCHAIN_LOGGER.warning("Message:  " + logResult.getString("error"));
-                BLOCKCHAIN_LOGGER.warning("Action:   You must manualy reward " + amount + " " + symbol + " to player");
+                BLOCKCHAIN_LOGGER.warning("Action:   You must manually reward " + amount + " " + symbol + " to player");
                 BLOCKCHAIN_LOGGER.warning("---------------------------------------- Failed Deposit End ----------------------------------------");
             }
         });
@@ -97,7 +98,7 @@ public class BlockchainGateway implements Connector.Interface
     {
         final JSONObject logResult = logWithdraw(txHash, to, symbol, amount, srvId, character, refund);
         
-        if (logResult.getBoolean("ok") == true)
+        if (logResult.optBoolean("ok", false))
         {
             BLOCKCHAIN_LOGGER.info("Withdrawal on " + getServerName(srvId) + ": " + character + " -> " + to + " = " + amount + " " + symbol);
         }
@@ -111,7 +112,7 @@ public class BlockchainGateway implements Connector.Interface
             BLOCKCHAIN_LOGGER.warning("Amount:   " + amount);
             BLOCKCHAIN_LOGGER.warning("Token:    " + symbol);
             BLOCKCHAIN_LOGGER.warning("Message:  " + logResult.getString("error"));
-            BLOCKCHAIN_LOGGER.warning("Action:   You may manualy remove " + amount + " " + symbol + " from player");
+            BLOCKCHAIN_LOGGER.warning("Action:   You may manually remove " + amount + " " + symbol + " from player");
             BLOCKCHAIN_LOGGER.warning("--------------------------------------- Failed Withdrawal End --------------------------------------");
         }
     }
@@ -153,7 +154,7 @@ public class BlockchainGateway implements Connector.Interface
         
         _connector.login(SYMBOL, WALLET, PASSWORD, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
-            if (responseObject.getBoolean("ok") == true)
+            if (responseObject.optBoolean("ok", false))
             {
                 LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
                 _signedIn = true;
@@ -169,13 +170,18 @@ public class BlockchainGateway implements Connector.Interface
             
             if (!_connectionResult.isDone())
             {
-                _connectionResult.complete(null);
+                _connectionResult.complete(_signedIn);
             }
             
         }).exceptionally((e) ->
         {
             LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
             LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
+
+            if (!_connectionResult.isDone())
+            {
+                _connectionResult.complete(false);
+            }
             
             return null;
         });
@@ -211,21 +217,12 @@ public class BlockchainGateway implements Connector.Interface
             _onlineServers.remove(srvId);
         }
         
-        // Check if a scheduled server update has NOT already been queued
-        if (!_scheduledServerUpdate)
+        if (scheduledServerUpdate.compareAndSet(false, true)) // If a server update has NOT already been scheduled, lock and schedule an update
         {
-            // Mark that an update has been scheduled to prevent duplicate scheduling
-            _scheduledServerUpdate = true;
-            
-            // Schedule the update with a delay to group multiple rapid server changes into a single request (e.g., during Login Server restart)
             ThreadPool.schedule(() ->
             {
-                // Send updated server list to the connector
-                _connector.renewServers(new JSONArray(_onlineServers));
-                
-                // Reset the flag to allow future updates to be scheduled
-                _scheduledServerUpdate = false;
-                
+                _connector.renewServers(new JSONArray(_onlineServers));  // Send updated server list
+                scheduledServerUpdate.set(false); // Reset the flag to allow future updates to be scheduled
             }, 5000); // Execute after 5 seconds
         }
     }
@@ -262,7 +259,7 @@ public class BlockchainGateway implements Connector.Interface
             }
         }, 75000, 150000);
         
-        _connectionResult.completeOnTimeout(null, 10, TimeUnit.SECONDS);
+        _connectionResult.completeOnTimeout(false, 10, TimeUnit.SECONDS);
         
         try
         {
@@ -449,7 +446,7 @@ public class BlockchainGateway implements Connector.Interface
                         {
                             return addToCharacter(srvId, character, amount, "0").thenApply((responseObject2) ->
                             {
-                                if (responseObject2.getBoolean("ok") == true)
+                                if (responseObject2.optBoolean("ok", false))
                                 {
                                     return new JSONObject().put("ok", false).put("error", "Refund could not be created. Withdrawal reverted");
                                 }
@@ -938,10 +935,17 @@ public class BlockchainGateway implements Connector.Interface
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
+
+        if(rwdId.equals("0"))
+        {
+            LOGGER.log(Level.WARNING, "Blockchain configuration for Game Server " + srvId + " was not sent");
+
+            return;
+        }
         
         sendRequestToGS(srvId, "setConfig", new JSONArray().put(wallet).put(symbol).put(rwdId)).thenAccept((responseObject) ->
         {
-            if (responseObject.getBoolean("ok") == true)
+            if (responseObject.optBoolean("ok", false))
             {
                 // Everything worked
             }
@@ -957,7 +961,7 @@ public class BlockchainGateway implements Connector.Interface
     {
         sendRequestToGS(srvId, "getGameServerBalance", new JSONArray()).thenAccept((responseObject) ->
         {
-            if (responseObject.getBoolean("ok") == true)
+            if (responseObject.optBoolean("ok", false))
             {
                 try (Connection con = DatabaseFactory.getConnection();)
                 {
@@ -1008,11 +1012,11 @@ public class BlockchainGateway implements Connector.Interface
                         
                         addToCharacter(srvId, character, amount, "0").thenAccept(responseObject1 ->
                         {
-                            if (responseObject1.getBoolean("ok") == true)
+                            if (responseObject1.optBoolean("ok", false))
                             {
                                 JSONObject responseObject2 = finalizeWithdraw(srvId, character, refund, amount);
                                 
-                                if (responseObject2.getBoolean("ok") == true)
+                                if (responseObject2.optBoolean("ok", false))
                                 {
                                     // Everything worked
                                 }
