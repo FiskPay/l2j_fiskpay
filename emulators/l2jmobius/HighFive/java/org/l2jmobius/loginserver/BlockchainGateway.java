@@ -62,7 +62,7 @@ public class BlockchainGateway implements Connector.Interface
     
     private final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
     private final CompletableFuture<Boolean> _connectionResult = new CompletableFuture<>();
-    private final AtomicBoolean scheduledServerUpdate = new AtomicBoolean(false);
+    private final AtomicBoolean _scheduledServerUpdate = new AtomicBoolean(false);
     
     private boolean _signedIn = false;
     
@@ -217,12 +217,12 @@ public class BlockchainGateway implements Connector.Interface
             _onlineServers.remove(srvId);
         }
         
-        if (scheduledServerUpdate.compareAndSet(false, true)) // If a server update has NOT already been scheduled, lock and schedule an update
+        if (_scheduledServerUpdate.compareAndSet(false, true)) // If a server update has NOT already been scheduled, lock and schedule an update
         {
             ThreadPool.schedule(() ->
             {
                 _connector.renewServers(new JSONArray(_onlineServers));  // Send updated server list
-                scheduledServerUpdate.set(false); // Reset the flag to allow future updates to be scheduled
+                _scheduledServerUpdate.set(false); // Reset the flag to allow future updates to be scheduled
             }, 5000); // Execute after 5 seconds
         }
     }
