@@ -154,10 +154,7 @@ public class Connector
                 }
                 catch (Exception e)
                 {
-                    if (!future.isDone())
-                    {
-                        future.completeExceptionally(e);
-                    }
+                    future.completeExceptionally(e);
                 }
             }
         });
