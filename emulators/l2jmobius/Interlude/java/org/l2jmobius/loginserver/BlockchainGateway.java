@@ -159,7 +159,7 @@ public class BlockchainGateway implements Connector.Interface
                 LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
                 _signedIn = true;
             }
-            else if (responseObject.has("error") == true)
+            else if (responseObject.has("error"))
             {
                 LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("error"));
             }
