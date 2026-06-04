@@ -80,7 +80,7 @@ public class BlockchainEndpoint
     {
         return _qrCodeData;
     }
-        
+    
     /**
     * Returns the blockchain wallet address associated with the game server.
     * @return wallet address
@@ -116,7 +116,7 @@ public class BlockchainEndpoint
     {
         return _rewardName;
     }
-        
+    
     /**
     * Builds and returns the web panel URL for the configured wallet.
     * @return full panel link URL
@@ -686,7 +686,7 @@ public class BlockchainEndpoint
         {
             return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward (item ID: " + rwdId + ") should be stackable");
         }
-                
+        
         try
         {
             final BufferedImage qrCodeImage = Tools.generateQRCodeImage(wallet);

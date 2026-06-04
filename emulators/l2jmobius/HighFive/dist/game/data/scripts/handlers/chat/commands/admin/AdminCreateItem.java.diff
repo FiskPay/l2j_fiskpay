@@ -1,0 +1,78 @@
+diff --git a/dist/game/data/scripts/handlers/chat/commands/admin/AdminCreateItem.java b/dist/game/data/scripts/handlers/chat/commands/admin/AdminCreateItem.java
+index 6c71b069..4f3933cf 100644
+--- a/dist/game/data/scripts/handlers/chat/commands/admin/AdminCreateItem.java
++++ b/dist/game/data/scripts/handlers/chat/commands/admin/AdminCreateItem.java
+@@ -22,6 +22,7 @@
+ 
+ import java.util.StringTokenizer;
+ 
++import org.l2jmobius.gameserver.BlockchainEndpoint;
+ import org.l2jmobius.gameserver.config.PlayerConfig;
+ import org.l2jmobius.gameserver.data.xml.EnchantItemGroupsData;
+ import org.l2jmobius.gameserver.data.xml.ItemData;
+@@ -195,6 +196,12 @@ else if (st.countTokens() == 1)
+ 				numval = 1;
+ 			}
+ 			
++			if (BlockchainEndpoint.isSet() && BlockchainEndpoint.getRewardItemId() == idval)
++			{
++				activeChar.sendSysMessage("Blockchain item(s) can not be created.");
++				return false;
++			}
++			
+ 			int counter = 0;
+ 			final ItemTemplate template = ItemData.getInstance().getTemplate(idval);
+ 			if (template == null)
+@@ -241,6 +248,12 @@ else if (st.countTokens() == 1)
+ 				numval = 1;
+ 			}
+ 			
++			if (BlockchainEndpoint.isSet() && BlockchainEndpoint.getRewardItemId() == idval)
++			{
++				activeChar.sendSysMessage("Blockchain item(s) can not be destroyed this way.");
++				return false;
++			}
++			
+ 			final Item item = (Item) World.getInstance().findObject(idval);
+ 			final int ownerId = item.getOwnerId();
+ 			if (ownerId > 0)
+@@ -271,6 +284,13 @@ else if (command.startsWith("admin_use_item"))
+ 		{
+ 			final String val = command.substring(15);
+ 			final int idval = Integer.parseInt(val);
++			
++			if (BlockchainEndpoint.isSet() && BlockchainEndpoint.getRewardItemId() == idval)
++			{
++				activeChar.sendSysMessage("Blockchain item(s) can not be used this way.");
++				return false;
++			}
++			
+ 			final Item item = (Item) World.getInstance().findObject(idval);
+ 			final int ownerId = item.getOwnerId();
+ 			if (ownerId > 0)
+@@ -316,6 +336,12 @@ public String[] getCommandList()
+ 	
+ 	private void createItem(Player activeChar, Player target, int id, int num)
+ 	{
++		if (BlockchainEndpoint.isSet() && BlockchainEndpoint.getRewardItemId() == id)
++		{
++			activeChar.sendSysMessage("Blockchain item(s) can not be created.");
++			return;
++		}
++		
+ 		final ItemTemplate template = ItemData.getInstance().getTemplate(id);
+ 		if (template == null)
+ 		{
+@@ -342,6 +368,12 @@ private void createItem(Player activeChar, Player target, int id, int num)
+ 	
+ 	private void createItem(Player activeChar, Player target, int id, int num, int enchant)
+ 	{
++		if (BlockchainEndpoint.isSet() && BlockchainEndpoint.getRewardItemId() == id)
++		{
++			activeChar.sendSysMessage("Blockchain item(s) can not be created.");
++			return;
++		}
++
+ 		final ItemTemplate template = ItemData.getInstance().getTemplate(id);
+ 		if (template == null)
+ 		{

@@ -1,5 +1,5 @@
 ﻿diff --git a/java/org/l2jmobius/gameserver/Shutdown.java b/java/org/l2jmobius/gameserver/Shutdown.java
-index 55f2710f..6232f25a 100644
+index 4ad9225d..20724593 100644
 --- a/java/org/l2jmobius/gameserver/Shutdown.java
 +++ b/java/org/l2jmobius/gameserver/Shutdown.java
 @@ -266,6 +266,15 @@ private void setMode(int mode)

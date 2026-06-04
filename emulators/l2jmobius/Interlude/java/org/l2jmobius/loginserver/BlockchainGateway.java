@@ -177,7 +177,7 @@ public class BlockchainGateway implements Connector.Interface
         {
             LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
             LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
-
+            
             if (!_connectionResult.isDone())
             {
                 _connectionResult.complete(false);
@@ -217,13 +217,16 @@ public class BlockchainGateway implements Connector.Interface
             _onlineServers.remove(srvId);
         }
         
-        if (_scheduledServerUpdate.compareAndSet(false, true)) // If a server update has NOT already been scheduled, lock and schedule an update
+        // If a server update has NOT already been scheduled, lock and schedule an update
+        if (_scheduledServerUpdate.compareAndSet(false, true))
         {
             ThreadPool.schedule(() ->
             {
-                _connector.renewServers(new JSONArray(_onlineServers));  // Send updated server list
-                _scheduledServerUpdate.set(false); // Reset the flag to allow future updates to be scheduled
-            }, 5000); // Execute after 5 seconds
+                // Send updated server list
+                _connector.renewServers(new JSONArray(_onlineServers));
+                // Reset the flag to allow future updates to be scheduled
+                _scheduledServerUpdate.set(false);
+            }, 5000);
         }
     }
     
@@ -935,11 +938,11 @@ public class BlockchainGateway implements Connector.Interface
             LOGGER.log(Level.WARNING, "Error with database connection");
             LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
         }
-
-        if(rwdId.equals("0"))
+        
+        if (rwdId.equals("0"))
         {
             LOGGER.log(Level.WARNING, "Blockchain configuration for Game Server " + srvId + " was not sent");
-
+            
             return;
         }
         
