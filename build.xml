@@ -5,7 +5,8 @@
     <!-- Directories -->
     <property name="src.dir" value="src" />
     <property name="build.dir" value="build" />
-    <property name="dist.dir" value="dist" />
+    <property name="build.bin" value="${build.dir}/bin" />
+    <property name="build.libs" value="${build.dir}/libs" />
     <property name="lib.dir" value="lib" />
 
     <!-- Setup classpath from lib -->
@@ -30,51 +31,68 @@
     <!-- Clean task -->
     <target name="clean">
         <delete dir="${build.dir}" />
-        <delete dir="${dist.dir}" />
     </target>
 
     <!-- Initialize directories -->
     <target name="init" depends="clean">
-        <mkdir dir="${build.dir}" />
-        <mkdir dir="${dist.dir}" />
+        <mkdir dir="${build.bin}" />
+        <mkdir dir="${build.libs}" />
     </target>
 
     <!-- Compile the source code -->
     <target name="compile" depends="init">
-        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="classpath" debug="true" encoding="UTF-8" includeantruntime="false"/>
-        <copy todir="${build.dir}/images">
+        <javac srcdir="${src.dir}" destdir="${build.bin}" classpathref="classpath" debug="true" encoding="UTF-8" includeantruntime="false"/>
+        <copy todir="${build.bin}/images">
             <fileset dir="${src.dir}/images" includes="FiskPayLogo.png"/>
         </copy>
     </target>
 
     <!-- Create source JAR -->
     <target name="source-jar" depends="init">
-        <jar destfile="${dist.dir}/Blockchain-sources.jar" basedir="${src.dir}">
+        <jar destfile="${build.libs}/Blockchain-sources.jar" basedir="${src.dir}">
         </jar>
     </target>
 
     <!-- Create runnable JAR -->
     <target name="jar" depends="compile,source-jar">
-        <jar destfile="${dist.dir}/Blockchain.jar" basedir="${build.dir}">
+        <jar destfile="${build.libs}/Blockchain.jar" basedir="${build.bin}">
         </jar>
     </target>
 
     <!-- Create runnable JAR with all dependencies included-->
     <target name="fat-jar" depends="compile,source-jar">
-        <jar destfile="${dist.dir}/Blockchain.jar">
-            <fileset dir="${build.dir}" />
-            <zipgroupfileset dir="${lib.dir}" includes="*.jar" />
+        <jar destfile="${build.libs}/Blockchain.jar">
+            <fileset dir="${build.bin}" />
+            <zipfileset src="${lib.dir}/abi-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/bcprov-jdk15on-1.69.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/core-3.5.1.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/core-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/crypto-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/engine.io-client-2.1.0.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/jackson-annotations-2.13.5.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/jackson-core-2.13.5.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/jackson-databind-2.13.5.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/javase-3.5.1.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/json-20250107.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/okhttp-3.12.12.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/okio-1.15.0.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/rlp-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/slf4j-api-1.7.30.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/slf4j-simple-1.7.30.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/socket.io-client-2.1.2.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/tuples-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+            <zipfileset src="${lib.dir}/utils-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
         </jar>
     </target>
 
     <!-- Run the application -->
     <target name="run" depends="jar">
-        <java jar="${dist.dir}/Blockchain.jar" fork="true" />
+        <java jar="${build.libs}/Blockchain.jar" fork="true" />
     </target>
 
     <!-- Cleanup task -->
     <target name="cleanup">
-        <delete dir="${build.dir}" />
+        <delete dir="${build.bin}" />
     </target>
 
 </project>

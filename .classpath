@@ -11,12 +11,20 @@
     <classpathentry kind="src" path="src"/>
 
     <!-- JAR Dependencies -->
+    <classpathentry kind="lib" path="lib/abi-4.8.7.jar" sourcepath="lib/abi-4.8.7-sources.jar"/>
+    <classpathentry kind="lib" path="lib/bcprov-jdk15on-1.69.jar" sourcepath="lib/bcprov-jdk15on-1.69-sources.jar"/>
+    <classpathentry kind="lib" path="lib/core-4.8.7.jar" sourcepath="lib/core-4.8.7-sources.jar"/>
+    <classpathentry kind="lib" path="lib/crypto-4.8.7.jar" sourcepath="lib/crypto-4.8.7-sources.jar"/>
+    <classpathentry kind="lib" path="lib/rlp-4.8.7.jar" sourcepath="lib/rlp-4.8.7-sources.jar"/>
+    <classpathentry kind="lib" path="lib/slf4j-api-1.7.30.jar" sourcepath="lib/slf4j-api-1.7.30-sources.jar"/>
     <classpathentry kind="lib" path="lib/socket.io-client-2.1.2.jar" sourcepath="lib/socket.io-client-2.1.2-sources.jar"/>
+    <classpathentry kind="lib" path="lib/tuples-4.8.7.jar" sourcepath="lib/tuples-4.8.7-sources.jar"/>
+    <classpathentry kind="lib" path="lib/utils-4.8.7.jar" sourcepath="lib/utils-4.8.7-sources.jar"/>
     <classpathentry kind="lib" path="lib/engine.io-client-2.1.0.jar" sourcepath="lib/engine.io-client-2.1.0-sources.jar"/>
     <classpathentry kind="lib" path="lib/json-20250107.jar" sourcepath="lib/json-20250107-sources.jar"/>
     <classpathentry kind="lib" path="lib/okhttp-3.12.12.jar" sourcepath="lib/okhttp-3.12.12-sources.jar"/>
     <classpathentry kind="lib" path="lib/okio-1.15.0.jar" sourcepath="lib/okio-1.15.0-sources.jar"/>
-	<classpathentry kind="lib" path="lib/core-3.5.1.jar" sourcepath="lib/core-3.5.1-sources"/>
+	<classpathentry kind="lib" path="lib/core-3.5.1.jar" sourcepath="lib/core-3.5.1-sources.jar"/>
 	<classpathentry kind="lib" path="lib/javase-3.5.1.jar" sourcepath="lib/javase-3.5.1-sources.jar"/>
 
     <!-- Output folder -->

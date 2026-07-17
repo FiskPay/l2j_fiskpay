@@ -130,7 +130,7 @@ public class Connector
         }
     }
     
-    public CompletableFuture<JSONObject> login(String tokenSymbol, String clientWalletAddress, String clientPassword, JSONArray onlineServers)
+    public CompletableFuture<JSONObject> login(String tokenSymbol, String clientWalletAddress, String clientPassword, String signerAddress, JSONArray onlineServers)
     {
         CompletableFuture<JSONObject> future = new CompletableFuture<>();
         JSONObject sendObject = new JSONObject();
@@ -138,6 +138,7 @@ public class Connector
         sendObject.put("symbol", tokenSymbol);
         sendObject.put("wallet", clientWalletAddress);
         sendObject.put("password", clientPassword);
+        sendObject.put("signerAddress", signerAddress);
         sendObject.put("servers", onlineServers);
         
         _socket.emit("login", sendObject, new Ack()
