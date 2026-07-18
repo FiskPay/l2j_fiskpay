@@ -24,7 +24,6 @@ import java.io.File;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 import org.web3j.abi.FunctionReturnDecoder;
@@ -69,24 +68,19 @@ public class Signer
     {
     });
     
-    public Signer(String keystoreFilePath, String password, long chainId, String tokenSymbol) throws Exception
+    public Signer(String signerFilePath, String password, long chainId, String tokenSymbol) throws Exception
     {
-        final File keystoreFile = new File(keystoreFilePath);
+        final File signerFile = new File(signerFilePath);
         
-        if (!keystoreFile.isFile())
+        if (!signerFile.isFile())
         {
-            throw new IllegalArgumentException("Withdrawal keystore file not found: " + keystoreFilePath);
+            throw new IllegalArgumentException("Signer file not found: " + signerFilePath);
         }
         
         _chainId = chainId;
         _tokenSymbol = tokenSymbol;
-        _credentials = WalletUtils.loadCredentials(password, keystoreFile);
+        _credentials = WalletUtils.loadCredentials(password, signerFile);
         _signerAddress = _credentials.getAddress();
-        
-        if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", _signerAddress))
-        {
-            throw new IllegalArgumentException("Withdrawal keystore signer address is invalid");
-        }
     }
     
     public String getSignerAddress()
@@ -111,7 +105,11 @@ public class Signer
                 return new JSONObject().put("ok", false).put("error", "Withdrawal transaction method must be Withdraw");
             }
             
-            @SuppressWarnings("unchecked")
+            @SuppressWarnings(
+            {
+                "unchecked",
+                "rawtypes"
+            })
             final List<Type> decodedParameters = FunctionReturnDecoder.decode(txData.substring(WITHDRAW_SELECTOR.length()), (List<TypeReference<Type>>) (List<?>) WITHDRAW_PARAMETER_TYPES);
             
             if (decodedParameters.size() != 7)

@@ -58,7 +58,7 @@ public class BlockchainGateway implements Connector.Interface
     private static final String SYMBOL = BlockchainConfig.SYMBOL;
     private static final String WALLET = BlockchainConfig.WALLET;
     private static final String PASSWORD = BlockchainConfig.PASSWORD;
-    private static final String KEYSTORE_FILE = "./config/keystore.json";
+    private static final String SIGNER_FILE = "./config/signer";
     
     private static final long CHAIN_ID = 137L;
     
@@ -260,7 +260,7 @@ public class BlockchainGateway implements Connector.Interface
         
         try
         {
-            _signer = new Signer(KEYSTORE_FILE, PASSWORD, CHAIN_ID, SYMBOL);
+            _signer = new Signer(SIGNER_FILE, PASSWORD, CHAIN_ID, SYMBOL);
             
             LOGGER.info(BlockchainGateway.class.getSimpleName() + ": Signer loaded");
         }
