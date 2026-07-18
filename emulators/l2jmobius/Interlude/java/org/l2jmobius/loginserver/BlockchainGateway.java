@@ -21,6 +21,7 @@
 package org.l2jmobius.loginserver;
 
 import com.fiskpay.l2.Connector;
+import com.fiskpay.l2.Signer;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -29,29 +30,13 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.loginserver.GameServerTable.GameServerInfo;
 import org.l2jmobius.loginserver.config.BlockchainConfig;
 import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceive;
-import org.web3j.abi.FunctionReturnDecoder;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.Utf8String;
-import org.web3j.abi.datatypes.generated.Uint32;
-import org.web3j.abi.datatypes.generated.Uint8;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
-import org.web3j.crypto.WalletUtils;
-import org.web3j.utils.Numeric;
 
-import java.io.File;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,12 +61,10 @@ public class BlockchainGateway implements Connector.Interface
     private static final String KEYSTORE_FILE = "./config/keystore.json";
     
     private static final long CHAIN_ID = 137L;
-    private static final String WITHDRAW_SELECTOR = "0x6926be4e";
-    
-    private static Credentials SIGNING_CREDENTIALS;
-    private static String SIGNER_ADDRESS;
     
     private static final AtomicInteger _counter = new AtomicInteger(0);
+    
+    private static Signer _signer;
     
     private final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
     private final CompletableFuture<Boolean> _connectionResult = new CompletableFuture<>();
@@ -175,20 +158,21 @@ public class BlockchainGateway implements Connector.Interface
         LOGGER.info(getClass().getSimpleName() + ": Connection established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in...");
         
-        _connector.login(SYMBOL, WALLET, PASSWORD, SIGNER_ADDRESS, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
+        _connector.login(SYMBOL, WALLET, PASSWORD, _signer.getSignerAddress(), new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
             if (responseObject.optBoolean("ok", false))
             {
-                LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
                 _signedIn = true;
+
+                LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
             }
             else if (responseObject.has("error"))
             {
-                LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("error"));
+                LOGGER.warning(getClass().getSimpleName() + ": " + responseObject.getString("error"));
             }
             else
             {
-                LOGGER.info(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
+                LOGGER.warning(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
             }
             
             if (!_connectionResult.isDone())
@@ -213,6 +197,8 @@ public class BlockchainGateway implements Connector.Interface
     @Override
     public void onDisconnect()
     {
+        _signedIn = false;
+        
         LOGGER.warning(getClass().getSimpleName() + ": Service temporary unavailable");
     }
     
@@ -270,30 +256,34 @@ public class BlockchainGateway implements Connector.Interface
     
     private BlockchainGateway()
     {
-        LOGGER.info(getClass().getSimpleName() + ": Connecting...");
+        LOGGER.info(getClass().getSimpleName() + ": Loading Signer...");
         
         try
         {
-            loadSigningCredentials();
+            _signer = new Signer(KEYSTORE_FILE, PASSWORD, CHAIN_ID, SYMBOL);
+            
+            LOGGER.info(BlockchainGateway.class.getSimpleName() + ": Signer loaded");
         }
         catch (Exception e)
         {
-            LOGGER.warning(getClass().getSimpleName() + ": Withdrawal keystore could not be loaded");
-            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
-            
             _connectionResult.complete(false);
+            
+            LOGGER.warning(getClass().getSimpleName() + ": Signer could not be loaded");
+            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
             
             return;
         }
         catch (OutOfMemoryError e)
         {
-            LOGGER.warning(getClass().getSimpleName() + ": Withdrawal keystore could not be decrypted because the JVM heap is too small");
-            LOGGER.warning(getClass().getSimpleName() + ": Increase the LoginServer Java heap size or use a keystore with lower scrypt memory cost");
-            
             _connectionResult.complete(false);
+            
+            LOGGER.warning(getClass().getSimpleName() + ": Signer could not be decrypted because the JVM heap is too small");
+            LOGGER.warning(getClass().getSimpleName() + ": Increase the LoginServer Java heap size and try again");
             
             return;
         }
+        
+        LOGGER.info(getClass().getSimpleName() + ": Connecting to service...");
         
         _connector = new Connector(this);
         
@@ -469,7 +459,7 @@ public class BlockchainGateway implements Connector.Interface
                 final String character = data.getString("character");
                 final String refund = data.getString("refund");
                 final String amount = data.getString("amount");
-                final JSONObject withdrawTx = validateWithdrawTransaction(data, srvId);
+                final JSONObject withdrawTx = _signer.validateWithdrawTransaction(data, srvId);
                 
                 if (!withdrawTx.optBoolean("ok", false))
                 {
@@ -515,7 +505,7 @@ public class BlockchainGateway implements Connector.Interface
                             });
                         }
                         
-                        return CompletableFuture.completedFuture(signWithdrawTransaction(withdrawTx.getJSONObject("data")));
+                        return CompletableFuture.completedFuture(_signer.signWithdrawTransaction(withdrawTx.getJSONObject("data")));
                     });
                 });
             }
@@ -929,139 +919,6 @@ public class BlockchainGateway implements Connector.Interface
         }
         
         return false;
-    }
-    
-    private static JSONObject validateWithdrawTransaction(JSONObject data, String srvId)
-    {
-        try
-        {
-            if (!data.has("tx") || !(data.get("tx") instanceof JSONObject))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction object undefined");
-            }
-            
-            final JSONObject tx = data.getJSONObject("tx");
-            final String txData = tx.getString("data");
-            
-            if (!txData.startsWith(WITHDRAW_SELECTOR))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction method must be Withdraw");
-            }
-            
-            @SuppressWarnings("rawtypes")
-            final List<TypeReference> outputParameters = Arrays.asList(new TypeReference<Address>()
-            {
-            }, new TypeReference<Address>()
-            {
-            }, new TypeReference<Utf8String>()
-            {
-            }, new TypeReference<Uint32>()
-            {
-            }, new TypeReference<Uint8>()
-            {
-            }, new TypeReference<Utf8String>()
-            {
-            }, new TypeReference<Uint32>()
-            {
-            });
-            @SuppressWarnings("unchecked")
-            final List<Type> decodedParameters = FunctionReturnDecoder.decode(txData.substring(WITHDRAW_SELECTOR.length()), (List<TypeReference<Type>>) (List<?>) outputParameters);
-            
-            if (decodedParameters.size() != 7)
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction data could not be decoded");
-            }
-            
-            final String clientWalletAddress = data.getString("clientWalletAddress");
-            final String playerWalletAddress = data.getString("playerWalletAddress");
-            final BigInteger amount = new BigInteger(data.getString("amount"));
-            final BigInteger server = new BigInteger(srvId);
-            final String character = data.getString("character");
-            final BigInteger refund = new BigInteger(data.getString("refund"));
-            
-            if (!((String) decodedParameters.get(0).getValue()).equalsIgnoreCase(clientWalletAddress))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction from address mismatch");
-            }
-            
-            if (!((String) decodedParameters.get(1).getValue()).equalsIgnoreCase(playerWalletAddress))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction to address mismatch");
-            }
-            
-            if (!SYMBOL.equals(decodedParameters.get(2).getValue()))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction symbol mismatch");
-            }
-            
-            if (!amount.equals(decodedParameters.get(3).getValue()))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction amount mismatch");
-            }
-            
-            if (!server.equals(decodedParameters.get(4).getValue()))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction server mismatch");
-            }
-            
-            if (!character.equals(decodedParameters.get(5).getValue()))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction character mismatch");
-            }
-            
-            if (!refund.equals(decodedParameters.get(6).getValue()))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction refund mismatch");
-            }
-            
-            return new JSONObject().put("ok", true).put("data", tx);
-        }
-        catch (Exception e)
-        {
-            return new JSONObject().put("ok", false).put("error", e.getMessage());
-        }
-    }
-    
-    private static JSONObject signWithdrawTransaction(JSONObject tx)
-    {
-        try
-        {
-            final BigInteger nonce = new BigInteger(tx.getString("nonce"));
-            final BigInteger gasLimit = new BigInteger(tx.getString("gasLimit"));
-            final String to = tx.getString("to");
-            final BigInteger value = new BigInteger(tx.getString("value"));
-            final String txData = tx.getString("data");
-            final BigInteger maxPriorityFeePerGas = new BigInteger(tx.getString("maxPriorityFeePerGas"));
-            final BigInteger maxFeePerGas = new BigInteger(tx.getString("maxFeePerGas"));
-            final RawTransaction rawTransaction = RawTransaction.createTransaction(CHAIN_ID, nonce, gasLimit, to, value, txData, maxPriorityFeePerGas, maxFeePerGas);
-            final String signedTransaction = Numeric.toHexString(TransactionEncoder.signMessage(rawTransaction, SIGNING_CREDENTIALS));
-            
-            return new JSONObject().put("ok", true).put("data", new JSONObject().put("rawTransaction", signedTransaction).put("chainId", Long.toString(CHAIN_ID)).put("nonce", nonce.toString()).put("to", to).put("value", value.toString()).put("data", txData));
-        }
-        catch (Exception e)
-        {
-            return new JSONObject().put("ok", false).put("error", "Withdrawal transaction signing failed");
-        }
-    }
-    
-    private static void loadSigningCredentials() throws Exception
-    {
-        final File keystoreFile = new File(KEYSTORE_FILE);
-        
-        if (!keystoreFile.isFile())
-        {
-            throw new IllegalArgumentException("Withdrawal keystore file not found: " + KEYSTORE_FILE);
-        }
-        
-        SIGNING_CREDENTIALS = WalletUtils.loadCredentials(PASSWORD, keystoreFile);
-        SIGNER_ADDRESS = SIGNING_CREDENTIALS.getAddress();
-        
-        if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", SIGNER_ADDRESS))
-        {
-            throw new IllegalArgumentException("Withdrawal keystore signer address is invalid");
-        }
-        
-        LOGGER.info(BlockchainGateway.class.getSimpleName() + ": Withdrawal signer address: " + SIGNER_ADDRESS);
     }
     
     private static CompletableFuture<JSONObject> getAccountCharacters(String srvId, String username)

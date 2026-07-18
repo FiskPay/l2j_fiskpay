@@ -6,7 +6,8 @@ index 8b62be38..873e7cd7 100644
  	<classpathentry kind="lib" path="dist/libs/mysql-connector-j-9.5.0.jar" sourcepath="dist/libs/mysql-connector-j-9.5.0-sources.jar"/>
  	<classpathentry kind="lib" path="dist/libs/slf4j-api-2.0.17.jar" sourcepath="dist/libs/slf4j-api-2.0.17-sources.jar"/>
  	<classpathentry kind="lib" path="dist/libs/slf4j-simple-2.0.17.jar" sourcepath="dist/libs/slf4j-simple-2.0.17-sources.jar"/>
-+	<classpathentry kind="lib" path="dist/libs/Blockchain.jar" sourcepath="dist/libs/Blockchain-sources.jar"/>
++	<classpathentry kind="lib" path="dist/libs/BlockchainGateway.jar" sourcepath="dist/libs/BlockchainGateway-sources.jar"/>
++	<classpathentry kind="lib" path="dist/libs/BlockchainEndpoint.jar" sourcepath="dist/libs/BlockchainEndpoint-sources.jar"/>
  	<classpathentry including="**/*.java" kind="src" path="dist/game/data/scripts"/>
  	<classpathentry kind="src" path="java"/>
  	<classpathentry kind="output" path="bin"/>

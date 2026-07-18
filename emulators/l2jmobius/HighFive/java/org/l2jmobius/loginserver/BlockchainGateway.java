@@ -21,6 +21,7 @@
 package org.l2jmobius.loginserver;
 
 import com.fiskpay.l2.Connector;
+import com.fiskpay.l2.Signer;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -29,14 +30,7 @@ import org.l2jmobius.commons.threads.ThreadPool;
 import org.l2jmobius.loginserver.GameServerTable.GameServerInfo;
 import org.l2jmobius.loginserver.config.BlockchainConfig;
 import org.l2jmobius.loginserver.network.gameserverpackets.FiskPayResponseReceive;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
-import org.web3j.crypto.WalletUtils;
-import org.web3j.utils.Numeric;
 
-import java.io.File;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.Connection;
@@ -68,10 +62,9 @@ public class BlockchainGateway implements Connector.Interface
     
     private static final long CHAIN_ID = 137L;
     
-    private static Credentials SIGNING_CREDENTIALS;
-    private static String SIGNER_ADDRESS;
-    
     private static final AtomicInteger _counter = new AtomicInteger(0);
+    
+    private static Signer _signer;
     
     private final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
     private final CompletableFuture<Boolean> _connectionResult = new CompletableFuture<>();
@@ -165,7 +158,7 @@ public class BlockchainGateway implements Connector.Interface
         LOGGER.info(getClass().getSimpleName() + ": Connection established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in...");
         
-        _connector.login(SYMBOL, WALLET, PASSWORD, SIGNER_ADDRESS, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
+        _connector.login(SYMBOL, WALLET, PASSWORD, _signer.getSignerAddress(), new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
             if (responseObject.optBoolean("ok", false))
             {
@@ -174,11 +167,11 @@ public class BlockchainGateway implements Connector.Interface
             }
             else if (responseObject.has("error"))
             {
-                LOGGER.info(getClass().getSimpleName() + ": " + responseObject.getString("error"));
+                LOGGER.warning(getClass().getSimpleName() + ": " + responseObject.getString("error"));
             }
             else
             {
-                LOGGER.info(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
+                LOGGER.warning(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
             }
             
             if (!_connectionResult.isDone())
@@ -260,30 +253,34 @@ public class BlockchainGateway implements Connector.Interface
     
     private BlockchainGateway()
     {
-        LOGGER.info(getClass().getSimpleName() + ": Connecting...");
+        LOGGER.info(getClass().getSimpleName() + ": Loading Signer...");
         
         try
         {
-            loadSigningCredentials();
+            _signer = new Signer(KEYSTORE_FILE, PASSWORD, CHAIN_ID, SYMBOL);
+            
+            LOGGER.info(BlockchainGateway.class.getSimpleName() + ": Signer loaded");
         }
         catch (Exception e)
         {
-            LOGGER.warning(getClass().getSimpleName() + ": Withdrawal keystore could not be loaded");
-            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
-            
             _connectionResult.complete(false);
+            
+            LOGGER.warning(getClass().getSimpleName() + ": Signer could not be loaded");
+            LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
             
             return;
         }
         catch (OutOfMemoryError e)
         {
-            LOGGER.warning(getClass().getSimpleName() + ": Withdrawal keystore could not be decrypted because the JVM heap is too small");
-            LOGGER.warning(getClass().getSimpleName() + ": Increase the LoginServer Java heap size or use a keystore with lower scrypt memory cost");
-            
             _connectionResult.complete(false);
+            
+            LOGGER.warning(getClass().getSimpleName() + ": Withdrawal keystore could not be decrypted because the JVM heap is too small");
+            LOGGER.warning(getClass().getSimpleName() + ": Increase the LoginServer Java heap size and try again");
             
             return;
         }
+        
+        LOGGER.info(getClass().getSimpleName() + ": Connecting to service...");
         
         _connector = new Connector(this);
         
@@ -455,11 +452,11 @@ public class BlockchainGateway implements Connector.Interface
             }
             case "requestWithdraw":
             {
-                final String walletAddress = data.getString("walletAddress");
+                final String playerWalletAddress = data.getString("playerWalletAddress");
                 final String character = data.getString("character");
                 final String refund = data.getString("refund");
                 final String amount = data.getString("amount");
-                final JSONObject withdrawTx = validateWithdrawTransaction(data);
+                final JSONObject withdrawTx = _signer.validateWithdrawTransaction(data, srvId);
                 
                 if (!withdrawTx.optBoolean("ok", false))
                 {
@@ -480,7 +477,7 @@ public class BlockchainGateway implements Connector.Interface
                     
                     final String username = responseObject0.getString("data");
                     
-                    if (!isWalletOwner(username, walletAddress))
+                    if (!isWalletOwner(username, playerWalletAddress))
                     {
                         return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Wallet ownership verification failed"));
                     }
@@ -505,7 +502,7 @@ public class BlockchainGateway implements Connector.Interface
                             });
                         }
                         
-                        return CompletableFuture.completedFuture(signWithdrawTransaction(withdrawTx.getJSONObject("data")));
+                        return CompletableFuture.completedFuture(_signer.signWithdrawTransaction(withdrawTx.getJSONObject("data")));
                     });
                 });
             }
@@ -919,187 +916,6 @@ public class BlockchainGateway implements Connector.Interface
         }
         
         return false;
-    }
-    
-    private static JSONObject validateWithdrawTransaction(JSONObject data)
-    {
-        try
-        {
-            if (!data.has("tx") || !(data.get("tx") instanceof JSONObject))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction object undefined");
-            }
-            
-            final JSONObject tx = data.getJSONObject("tx");
-            final BigInteger nonce = getRequiredUnsignedInteger(tx, "nonce");
-            final BigInteger maxPriorityFeePerGas = getRequiredUnsignedInteger(tx, "maxPriorityFeePerGas");
-            final BigInteger maxFeePerGas = getRequiredUnsignedInteger(tx, "maxFeePerGas");
-            final BigInteger gasLimit = getRequiredUnsignedInteger(tx, "gasLimit");
-            final BigInteger value = getRequiredUnsignedInteger(tx, "value");
-            final String to = getRequiredAddress(tx, "to");
-            final String txData = getRequiredHex(tx, "data");
-            
-            if (tx.has("chainId") && !getRequiredUnsignedInteger(tx, "chainId").equals(BigInteger.valueOf(CHAIN_ID)))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction chainId must be 137");
-            }
-            
-            if (tx.has("type") && !getRequiredUnsignedInteger(tx, "type").equals(BigInteger.valueOf(2)))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction type must be 2");
-            }
-            
-            if (gasLimit.equals(BigInteger.ZERO))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction gasLimit must be greater than zero");
-            }
-            
-            if (maxFeePerGas.compareTo(maxPriorityFeePerGas) < 0)
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction maxFeePerGas is lower than maxPriorityFeePerGas");
-            }
-            
-            if (!value.equals(BigInteger.ZERO))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction value must be zero");
-            }
-            
-            if (txData.length() <= 2)
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction data is empty");
-            }
-            
-            if (tx.has("accessList") && (!(tx.get("accessList") instanceof JSONArray) || (tx.getJSONArray("accessList").length() > 0)))
-            {
-                return new JSONObject().put("ok", false).put("error", "Withdrawal transaction accessList must be empty");
-            }
-            
-            return new JSONObject().put("ok", true).put("data", new JSONObject().put("nonce", nonce.toString()).put("maxPriorityFeePerGas", maxPriorityFeePerGas.toString()).put("maxFeePerGas", maxFeePerGas.toString()).put("gasLimit", gasLimit.toString()).put("to", to).put("value", value.toString()).put("data", txData));
-        }
-        catch (Exception e)
-        {
-            return new JSONObject().put("ok", false).put("error", e.getMessage());
-        }
-    }
-    
-    private static JSONObject signWithdrawTransaction(JSONObject tx)
-    {
-        try
-        {
-            final BigInteger nonce = new BigInteger(tx.getString("nonce"));
-            final BigInteger gasLimit = new BigInteger(tx.getString("gasLimit"));
-            final String to = tx.getString("to");
-            final BigInteger value = new BigInteger(tx.getString("value"));
-            final String txData = tx.getString("data");
-            final BigInteger maxPriorityFeePerGas = new BigInteger(tx.getString("maxPriorityFeePerGas"));
-            final BigInteger maxFeePerGas = new BigInteger(tx.getString("maxFeePerGas"));
-            final RawTransaction rawTransaction = RawTransaction.createTransaction(CHAIN_ID, nonce, gasLimit, to, value, txData, maxPriorityFeePerGas, maxFeePerGas);
-            final String signedTransaction = Numeric.toHexString(TransactionEncoder.signMessage(rawTransaction, SIGNING_CREDENTIALS));
-            
-            return new JSONObject().put("ok", true).put("data", new JSONObject().put("rawTransaction", signedTransaction).put("chainId", Long.toString(CHAIN_ID)).put("nonce", nonce.toString()).put("to", to).put("value", value.toString()).put("data", txData));
-        }
-        catch (Exception e)
-        {
-            return new JSONObject().put("ok", false).put("error", "Withdrawal transaction signing failed");
-        }
-    }
-    
-    private static void loadSigningCredentials() throws Exception
-    {
-        final File keystoreFile = new File(KEYSTORE_FILE);
-        
-        if (!keystoreFile.isFile())
-        {
-            throw new IllegalArgumentException("Withdrawal keystore file not found: " + KEYSTORE_FILE);
-        }
-        
-        SIGNING_CREDENTIALS = WalletUtils.loadCredentials(PASSWORD, keystoreFile);
-        SIGNER_ADDRESS = SIGNING_CREDENTIALS.getAddress();
-        
-        if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", SIGNER_ADDRESS))
-        {
-            throw new IllegalArgumentException("Withdrawal keystore signer address is invalid");
-        }
-        
-        LOGGER.info(BlockchainGateway.class.getSimpleName() + ": Withdrawal signer address: " + SIGNER_ADDRESS);
-    }
-    
-    private static BigInteger getRequiredUnsignedInteger(JSONObject object, String key)
-    {
-        if (!object.has(key))
-        {
-            throw new IllegalArgumentException("Withdrawal transaction " + key + " undefined");
-        }
-        
-        final Object value = object.get(key);
-        final BigInteger number;
-        
-        if (value instanceof Number)
-        {
-            number = new BigInteger(value.toString());
-        }
-        else if (value instanceof String)
-        {
-            final String stringValue = ((String) value).trim();
-            
-            if (stringValue.matches("(?i)^0x[0-9a-f]+$"))
-            {
-                number = new BigInteger(stringValue.substring(2), 16);
-            }
-            else if (stringValue.matches("^\\d+$"))
-            {
-                number = new BigInteger(stringValue);
-            }
-            else
-            {
-                throw new IllegalArgumentException("Withdrawal transaction " + key + " is not a valid unsigned integer");
-            }
-        }
-        else
-        {
-            throw new IllegalArgumentException("Withdrawal transaction " + key + " is not a valid unsigned integer");
-        }
-        
-        if (number.signum() < 0)
-        {
-            throw new IllegalArgumentException("Withdrawal transaction " + key + " is negative");
-        }
-        
-        return number;
-    }
-    
-    private static String getRequiredAddress(JSONObject object, String key)
-    {
-        if (!object.has(key) || !(object.get(key) instanceof String))
-        {
-            throw new IllegalArgumentException("Withdrawal transaction " + key + " undefined");
-        }
-        
-        final String address = object.getString(key);
-        
-        if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", address))
-        {
-            throw new IllegalArgumentException("Withdrawal transaction " + key + " is not a valid address");
-        }
-        
-        return address;
-    }
-    
-    private static String getRequiredHex(JSONObject object, String key)
-    {
-        if (!object.has(key) || !(object.get(key) instanceof String))
-        {
-            throw new IllegalArgumentException("Withdrawal transaction " + key + " undefined");
-        }
-        
-        final String hex = object.getString(key);
-        
-        if (!Pattern.matches("^0x([a-fA-F0-9]{2})*$", hex))
-        {
-            throw new IllegalArgumentException("Withdrawal transaction " + key + " is not valid hex");
-        }
-        
-        return hex;
     }
     
     private static CompletableFuture<JSONObject> getAccountCharacters(String srvId, String username)

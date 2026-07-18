@@ -1,32 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
-<project name="FiskPayBlockchainSupport" default="fat-jar" basedir=".">
+<project name="FiskPayBlockchainSupport" default="all" basedir=".">
 
     <!-- Directories -->
     <property name="src.dir" value="src" />
     <property name="build.dir" value="build" />
-    <property name="build.bin" value="${build.dir}/bin" />
+    <property name="gateway.bin" value="${build.dir}/gateway-bin" />
+    <property name="endpoint.bin" value="${build.dir}/endpoint-bin" />
     <property name="build.libs" value="${build.dir}/libs" />
     <property name="lib.dir" value="lib" />
+    <property name="signature.excludes" value="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA" />
 
-    <!-- Setup classpath from lib -->
-    <path id="classpath">
+    <!-- Gateway dependencies -->
+    <path id="gateway.classpath">
         <fileset dir="${lib.dir}">
-			<include name="*.jar" />
-            <exclude name="**/*-sources.jar" />
+            <include name="abi-4.8.7.jar" />
+            <include name="bcprov-jdk15on-1.69.jar" />
+            <include name="core-4.8.7.jar" />
+            <include name="crypto-4.8.7.jar" />
+            <include name="engine.io-client-2.1.0.jar" />
+            <include name="jackson-annotations-2.13.5.jar" />
+            <include name="jackson-core-2.13.5.jar" />
+            <include name="jackson-databind-2.13.5.jar" />
+            <include name="json-20250107.jar" />
+            <include name="okhttp-3.12.12.jar" />
+            <include name="okio-1.15.0.jar" />
+            <include name="rlp-4.8.7.jar" />
+            <include name="slf4j-api-1.7.30.jar" />
+            <include name="slf4j-simple-1.7.30.jar" />
+            <include name="socket.io-client-2.1.2.jar" />
+            <include name="tuples-4.8.7.jar" />
+            <include name="utils-4.8.7.jar" />
         </fileset>
     </path>
 
-    <!-- Convert classpath to manifest-friendly format -->
-    <pathconvert property="manifest.lib" pathsep=" ">
-        <path refid="classpath" />
-        <mapper>
-            <chainedmapper>
-                <flattenmapper />
-                <globmapper from="*.jar" to="../lib/*.jar" />
-            </chainedmapper>
-        </mapper>
-    </pathconvert>
+    <!-- Endpoint dependencies -->
+    <path id="endpoint.classpath">
+        <fileset dir="${lib.dir}">
+            <include name="core-3.5.1.jar" />
+            <include name="javase-3.5.1.jar" />
+            <include name="json-20250107.jar" />
+        </fileset>
+    </path>
 
     <!-- Clean task -->
     <target name="clean">
@@ -35,64 +50,90 @@
 
     <!-- Initialize directories -->
     <target name="init" depends="clean">
-        <mkdir dir="${build.bin}" />
+        <mkdir dir="${gateway.bin}" />
+        <mkdir dir="${endpoint.bin}" />
         <mkdir dir="${build.libs}" />
     </target>
 
-    <!-- Compile the source code -->
-    <target name="compile" depends="init">
-        <javac srcdir="${src.dir}" destdir="${build.bin}" classpathref="classpath" debug="true" encoding="UTF-8" includeantruntime="false"/>
-        <copy todir="${build.bin}/images">
+    <!-- Compile gateway support source -->
+    <target name="compile-gateway" depends="init">
+        <javac srcdir="${src.dir}" destdir="${gateway.bin}" classpathref="gateway.classpath" debug="true" encoding="UTF-8" includeantruntime="false">
+            <include name="com/fiskpay/l2/Connector.java" />
+            <include name="com/fiskpay/l2/Signer.java" />
+        </javac>
+    </target>
+
+    <!-- Compile endpoint support source -->
+    <target name="compile-endpoint" depends="init">
+        <javac srcdir="${src.dir}" destdir="${endpoint.bin}" classpathref="endpoint.classpath" debug="true" encoding="UTF-8" includeantruntime="false">
+            <include name="com/fiskpay/l2/Tools.java" />
+        </javac>
+        <copy todir="${endpoint.bin}/images">
             <fileset dir="${src.dir}/images" includes="FiskPayLogo.png"/>
         </copy>
     </target>
 
-    <!-- Create source JAR -->
-    <target name="source-jar" depends="init">
-        <jar destfile="${build.libs}/Blockchain-sources.jar" basedir="${src.dir}">
+    <!-- Create gateway source JAR -->
+    <target name="gateway-source-jar" depends="init">
+        <jar destfile="${build.libs}/BlockchainGateway-sources.jar">
+            <fileset dir="${src.dir}">
+                <include name="com/fiskpay/l2/Connector.java" />
+                <include name="com/fiskpay/l2/Signer.java" />
+            </fileset>
         </jar>
     </target>
 
-    <!-- Create runnable JAR -->
-    <target name="jar" depends="compile,source-jar">
-        <jar destfile="${build.libs}/Blockchain.jar" basedir="${build.bin}">
+    <!-- Create endpoint source JAR -->
+    <target name="endpoint-source-jar" depends="init">
+        <jar destfile="${build.libs}/BlockchainEndpoint-sources.jar">
+            <fileset dir="${src.dir}">
+                <include name="com/fiskpay/l2/Tools.java" />
+                <include name="images/FiskPayLogo.png" />
+            </fileset>
         </jar>
     </target>
 
-    <!-- Create runnable JAR with all dependencies included-->
-    <target name="fat-jar" depends="compile,source-jar">
-        <jar destfile="${build.libs}/Blockchain.jar">
-            <fileset dir="${build.bin}" />
-            <zipfileset src="${lib.dir}/abi-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/bcprov-jdk15on-1.69.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/core-3.5.1.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/core-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/crypto-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/engine.io-client-2.1.0.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/jackson-annotations-2.13.5.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/jackson-core-2.13.5.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/jackson-databind-2.13.5.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/javase-3.5.1.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/json-20250107.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/okhttp-3.12.12.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/okio-1.15.0.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/rlp-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/slf4j-api-1.7.30.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/slf4j-simple-1.7.30.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/socket.io-client-2.1.2.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/tuples-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
-            <zipfileset src="${lib.dir}/utils-4.8.7.jar" excludes="META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA"/>
+    <!-- Create gateway support JAR with dependencies included -->
+    <target name="gateway-jar" depends="compile-gateway,gateway-source-jar">
+        <jar destfile="${build.libs}/BlockchainGateway.jar">
+            <fileset dir="${gateway.bin}" />
+            <zipfileset src="${lib.dir}/abi-4.8.7.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/bcprov-jdk15on-1.69.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/core-4.8.7.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/crypto-4.8.7.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/engine.io-client-2.1.0.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/jackson-annotations-2.13.5.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/jackson-core-2.13.5.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/jackson-databind-2.13.5.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/json-20250107.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/okhttp-3.12.12.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/okio-1.15.0.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/rlp-4.8.7.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/slf4j-api-1.7.30.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/slf4j-simple-1.7.30.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/socket.io-client-2.1.2.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/tuples-4.8.7.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/utils-4.8.7.jar" excludes="${signature.excludes}"/>
         </jar>
     </target>
 
-    <!-- Run the application -->
-    <target name="run" depends="jar">
-        <java jar="${build.libs}/Blockchain.jar" fork="true" />
+    <!-- Create endpoint support JAR with dependencies included -->
+    <target name="endpoint-jar" depends="compile-endpoint,endpoint-source-jar">
+        <jar destfile="${build.libs}/BlockchainEndpoint.jar">
+            <fileset dir="${endpoint.bin}" />
+            <zipfileset src="${lib.dir}/core-3.5.1.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/javase-3.5.1.jar" excludes="${signature.excludes}"/>
+            <zipfileset src="${lib.dir}/json-20250107.jar" excludes="${signature.excludes}"/>
+        </jar>
     </target>
+
+    <!-- Create all support JARs -->
+    <target name="all" depends="gateway-jar,endpoint-jar" />
 
     <!-- Cleanup task -->
     <target name="cleanup">
-        <delete dir="${build.bin}" />
+        <delete dir="${gateway.bin}" />
+        <delete dir="${endpoint.bin}" />
     </target>
 
 </project>
