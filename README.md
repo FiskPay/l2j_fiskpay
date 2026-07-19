@@ -51,29 +51,33 @@ Apply all `.java.diff` patch files to your L2J project.
 
 Apply the SQL updates to your Login Server database. If needed, modify the reward item id in your database's `gameservers` table
 
-### 3. Register your L2J emulator to the service
+### 4. Register your L2J emulator to the service
 
 Register your server at:
 
 [https://l2.fiskpay.com/](https://l2.fiskpay.com/)
 
-To register, use your desired password and your Login Server remote IPv4 address.
+To register, connect your Web3 wallet and enter your desired Login Server password and remote IPv4 address. Registration creates an encrypted signer file locally in your browser. Download the file, keep its filename as `signer`, and place it in your Login Server `config` folder.
 
-### 4. Enable blockchain support
+The signer file is encrypted with the same password you enter during registration. Keep this file private. It is required by the Login Server to sign withdrawal transactions.
+
+### 5. Enable blockchain support
 
 Open your Login Server `Blockchain` config file, and add your credentials.
 
-### 5. Compile & Launch
+Set `Password` to the same password used during registration. Make sure the downloaded signer file is available at `./config/signer` relative to the Login Server.
+
+### 6. Compile & Launch
 
 Build and launch your L2J server, depending on your project.
 
-### 6. Access your blockchain panel
+### 7. Access your blockchain panel
 
 Manage transactions between your server and the blockchain via the following link:
 
-[https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/](https://l2.fiskpay.com/0x41dA7A1e5085179F43758dC5F0a5bBEB012E07F1/)
+https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/
 
-Replace YOUR_ETHEREUM_ADDRESS_HERE with your actual Ethereum wallet address. 
+Replace YOUR_ETHEREUM_ADDRESS_HERE with your actual Ethereum wallet address.
 
 ## In-game Preview
 
