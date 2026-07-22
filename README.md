@@ -9,6 +9,7 @@ FiskPay brings cryptocurrency payment integration to Lineage 2 Java emulators, e
 - [Features](#features)
 - [Requirements](#requirements)
 - [Instructions](#instructions)
+- [Disclaimer](#disclaimer)
 - [License](#license)
 
 
@@ -49,7 +50,11 @@ Apply all `.java.diff` patch files to your L2J project.
 
 ### 3. Update your MySQL Database
 
-Apply the SQL updates to your Login Server database. If needed, modify the reward item id in your database's `gameservers` table
+Apply the SQL updates to your Login Server database.
+
+The in-game reward item ID is not configured in the database. It is configured in your Login Server `Blockchain.ini` file using `RewardId`.
+
+Set `ConversionRate` in `Blockchain.ini` to define how many in-game reward items equal one blockchain service unit. Accepted values are `1`, `10`, `100`, and `1000`.
 
 ### 4. Register your L2J emulator to the service
 
@@ -63,7 +68,22 @@ The signer file is encrypted with the same password you enter during registratio
 
 ### 5. Enable blockchain support
 
-Open your Login Server `Blockchain` config file, and add your credentials.
+Open your Login Server `Blockchain.ini` config file, enable the integration, and add your settings:
+
+```ini
+Enable = True
+Symbol = USDT0
+RewardId = 4037
+ConversionRate = 1
+Wallet = YOUR_WALLET_ADDRESS_HERE
+Password = YOUR_SUPER_SECRET_PASSWORD_HERE
+```
+
+`Symbol` and `Wallet` are shared by all Game Servers connected to the Login Server.
+
+`RewardId` must be a numeric item ID. The item must exist in the Game Server and must be stackable.
+
+`ConversionRate` is only for game/UI conversion. The blockchain contract still uses raw service units. Accepted values are `1`, `10`, `100`, and `1000`.
 
 Set `Password` to the same password used during registration. Make sure the downloaded signer file is available at `./config/signer` relative to the Login Server.
 
@@ -82,6 +102,13 @@ Replace YOUR_ETHEREUM_ADDRESS_HERE with your actual Ethereum wallet address.
 ## In-game Preview
 
 <div align="center"><img width="828" height="477" alt="FiskPay in-game preview" src="https://github.com/user-attachments/assets/9f449c29-1b1d-473e-9b74-8e5ac455251c" /></div>
+
+
+## Disclaimer
+
+This patch is provided as an example of how the FiskPay service can be implemented in an L2J emulator.
+
+How the service is installed, configured, modified, operated, and secured is the responsibility of each client or server owner. FiskPay is not responsible for improper use, insecure deployment, incompatible changes, or any damage caused by using this patch incorrectly.
 
 
 ## License

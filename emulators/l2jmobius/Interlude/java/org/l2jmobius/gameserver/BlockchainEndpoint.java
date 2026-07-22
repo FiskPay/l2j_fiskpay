@@ -61,6 +61,7 @@ public class BlockchainEndpoint
     private static String _symbol; // Token symbol used for blockchain transactions (e.g. USDT0)
     private static int _rewardId; // In-game item ID used to represent blockchain rewards (e.g. 4037)
     private static String _rewardName; // In-game display name of the blockchain reward item (e.g. Coin of Luck)
+    private static int _conversionRate = 1; // In-game reward items represented by one blockchain service unit.
     
     private static boolean _isSet = false;
     
@@ -221,8 +222,9 @@ public class BlockchainEndpoint
                 final String wallet = info.getString(0);
                 final String symbol = info.getString(1);
                 final String rwdId = info.getString(2);
+                final String convRate = info.getString(3);
                 
-                responseObject = setConfig(wallet, symbol, rwdId);
+                responseObject = setConfig(wallet, symbol, rwdId, convRate);
                 break;
             }
             default:
@@ -377,7 +379,7 @@ public class BlockchainEndpoint
         }
         
         final Player player = World.getInstance().getPlayer(playerId);
-        final int rewardAmount = Integer.parseInt(amount);
+        final int rewardAmount = Integer.parseInt(amount) * _conversionRate;
         
         if (player != null)
         {
@@ -502,7 +504,7 @@ public class BlockchainEndpoint
         }
         
         final Player player = World.getInstance().getPlayer(playerId);
-        final int removeAmount = Integer.parseInt(amount);
+        final int removeAmount = Integer.parseInt(amount) * _conversionRate;
         
         if (player != null)
         {
@@ -669,7 +671,7 @@ public class BlockchainEndpoint
                 {
                     if (rs.next() && rs.getString("balance") != null)
                     {
-                        return new JSONObject().put("ok", true).put("data", rs.getString("balance"));
+                        return new JSONObject().put("ok", true).put("data", Integer.toString(rs.getInt("balance") / _conversionRate));
                     }
                     
                     return new JSONObject().put("ok", true).put("data", "0");
@@ -684,7 +686,7 @@ public class BlockchainEndpoint
         }
     }
     
-    private static JSONObject setConfig(String wallet, String symbol, String rwdId)
+    private static JSONObject setConfig(String wallet, String symbol, String rwdId, String convRate)
     {
         final int rewardId = Integer.parseInt(rwdId);
         final ItemTemplate template = ItemData.getInstance().getTemplate(rewardId);
@@ -697,6 +699,11 @@ public class BlockchainEndpoint
         if (!template.isStackable())
         {
             return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward (item ID: " + rwdId + ") should be stackable");
+        }
+
+        if (!convRate.matches("^(1|10|100|1000)$"))
+        {
+            return new JSONObject().put("ok", false).put("error", "Blockchain in-game conversion rate is " + convRate + " (out of bounds)");
         }
                 
         try
@@ -715,6 +722,7 @@ public class BlockchainEndpoint
             _symbol = symbol;
             _rewardId = rewardId;
             _rewardName = template.getName();
+            _conversionRate = Integer.parseInt(convRate);
             
             _isSet = true;
             

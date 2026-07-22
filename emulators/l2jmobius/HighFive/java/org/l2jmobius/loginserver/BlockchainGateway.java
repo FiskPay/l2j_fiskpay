@@ -58,6 +58,8 @@ public class BlockchainGateway implements Connector.Interface
     private static final String SYMBOL = BlockchainConfig.SYMBOL;
     private static final String WALLET = BlockchainConfig.WALLET;
     private static final String PASSWORD = BlockchainConfig.PASSWORD;
+    private static final String REWARD_ID = BlockchainConfig.REWARD_ID;
+    private static final String CONVERSION_RATE = BlockchainConfig.CONVERSION_RATE;
     private static final String SIGNER_FILE = "./config/signer";
 
     private static final long CHAIN_ID = 137L;
@@ -158,7 +160,7 @@ public class BlockchainGateway implements Connector.Interface
         LOGGER.info(getClass().getSimpleName() + ": Connection established");
         LOGGER.info(getClass().getSimpleName() + ": Signing in...");
 
-        _connector.login(SYMBOL, WALLET, PASSWORD, _signer.getSignerAddress(), new JSONArray(_onlineServers)).thenAccept((responseObject) ->
+        _connector.login(SYMBOL, WALLET, PASSWORD, _signer.getSignerAddress(), CONVERSION_RATE, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
             if (responseObject.optBoolean("ok", false))
             {
@@ -216,7 +218,7 @@ public class BlockchainGateway implements Connector.Interface
         if (isConnected && !_onlineServers.contains(srvId))
         {
             _onlineServers.add(srvId);
-            setConfig(srvId, WALLET, SYMBOL);
+            setConfig(srvId);
         }
         else if (!isConnected && _onlineServers.contains(srvId))
         {
@@ -253,6 +255,23 @@ public class BlockchainGateway implements Connector.Interface
 
     private BlockchainGateway()
     {
+        if (!Pattern.matches("^[1-9][0-9]*$", REWARD_ID))
+        {
+            _connectionResult.complete(false);
+            
+            LOGGER.warning(getClass().getSimpleName() + ": Invalid blockchain reward item ID");
+            
+            return;
+        }
+        if (!Pattern.matches("^(1|10|100|1000)$", CONVERSION_RATE))
+        {
+            _connectionResult.complete(false);
+            
+            LOGGER.warning(getClass().getSimpleName() + ": Invalid blockchain conversion rate");
+            
+            return;
+        }
+        
         LOGGER.info(getClass().getSimpleName() + ": Loading Signer...");
 
         try
@@ -953,44 +972,9 @@ public class BlockchainGateway implements Connector.Interface
         return sendRequestToGS(srvId, "getGameServerMode", new JSONArray());
     }
 
-    private static void setConfig(String srvId, String wallet, String symbol)
+    private static void setConfig(String srvId)
     {
-        String rwdId = "0";
-
-        try (Connection con = DatabaseFactory.getConnection())
-        {
-            try (PreparedStatement ps = con.prepareStatement("SELECT reward_id FROM gameservers WHERE server_id = ? LIMIT 1;"))
-            {
-                ps.setInt(1, Integer.parseInt(srvId));
-
-                try (ResultSet rs = ps.executeQuery())
-                {
-                    if (rs.next())
-                    {
-                        rwdId = rs.getString("reward_id");
-                    }
-                }
-                catch (Exception e)
-                {
-                    LOGGER.log(Level.WARNING, "Blockchain in-game reward item could not be fetched from database");
-                    LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            LOGGER.log(Level.WARNING, "Error with database connection");
-            LOGGER.log(Level.WARNING, "Database error: " + e.getMessage(), e);
-        }
-
-        if (rwdId.equals("0"))
-        {
-            LOGGER.log(Level.WARNING, "Blockchain configuration for Game Server " + srvId + " was not sent");
-
-            return;
-        }
-
-        sendRequestToGS(srvId, "setConfig", new JSONArray().put(wallet).put(symbol).put(rwdId)).thenAccept((responseObject) ->
+        sendRequestToGS(srvId, "setConfig", new JSONArray().put(WALLET).put(SYMBOL).put(REWARD_ID).put(CONVERSION_RATE)).thenAccept((responseObject) ->
         {
             if (responseObject.optBoolean("ok", false))
             {

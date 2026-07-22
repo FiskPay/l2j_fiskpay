@@ -32,6 +32,8 @@ public class BlockchainConfig
     
     public static boolean ENABLE;
     public static String SYMBOL;
+    public static String REWARD_ID;
+    public static String CONVERSION_RATE;
     public static String WALLET;
     public static String PASSWORD;
     
@@ -41,6 +43,8 @@ public class BlockchainConfig
         
         ENABLE = blockchainConfig.getBoolean("Enable", false);
         SYMBOL = blockchainConfig.getString("Symbol", "USDT0");
+        REWARD_ID = blockchainConfig.getString("RewardId", "4037");
+        CONVERSION_RATE = blockchainConfig.getString("ConversionRate", "1");
         WALLET = blockchainConfig.getString("Wallet", "0x0000000000000000000000000000000000000000");
         PASSWORD = blockchainConfig.getString("Password", "");
     }
