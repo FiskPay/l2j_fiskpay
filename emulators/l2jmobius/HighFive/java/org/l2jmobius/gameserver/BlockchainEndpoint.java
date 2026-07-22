@@ -688,11 +688,6 @@ public class BlockchainEndpoint
         {
             return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward (item ID: " + rwdId + ") should be stackable");
         }
-
-        if (!convRate.matches("^(1|10|100|1000)$"))
-        {
-            return new JSONObject().put("ok", false).put("error", "Blockchain in-game conversion rate is " + convRate + " (out of bounds)");
-        }
         
         try
         {
