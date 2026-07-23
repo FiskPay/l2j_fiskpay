@@ -707,7 +707,7 @@ public class BlockchainEndpoint
         }
         catch (Exception e)
         {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Blockchain configuration could not be set: " + e.getMessage(), e);
         }
         
         return new JSONObject().put("ok", false).put("error", "Blockchain configuration could not be set");

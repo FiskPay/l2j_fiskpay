@@ -95,7 +95,7 @@ public class BlockchainGateway implements Connector.Interface
                 BLOCKCHAIN_LOGGER.warning("Amount:   " + amount);
                 BLOCKCHAIN_LOGGER.warning("Token:    " + symbol);
                 BLOCKCHAIN_LOGGER.warning("Message:  " + logResult.getString("error"));
-                BLOCKCHAIN_LOGGER.warning("Action:   You must manually reward " + amount + " " + symbol + " to player");
+                BLOCKCHAIN_LOGGER.warning("Action:   You must manually reward an equivalent of " + amount + " " + symbol + " to player");
                 BLOCKCHAIN_LOGGER.warning("---------------------------------------- Failed Deposit End ----------------------------------------");
             }
         });
@@ -120,7 +120,7 @@ public class BlockchainGateway implements Connector.Interface
             BLOCKCHAIN_LOGGER.warning("Amount:   " + amount);
             BLOCKCHAIN_LOGGER.warning("Token:    " + symbol);
             BLOCKCHAIN_LOGGER.warning("Message:  " + logResult.getString("error"));
-            BLOCKCHAIN_LOGGER.warning("Action:   You may manually remove " + amount + " " + symbol + " from player");
+            BLOCKCHAIN_LOGGER.warning("Action:   You may manually remove an equivalent of " + amount + " " + symbol + " from player");
             BLOCKCHAIN_LOGGER.warning("--------------------------------------- Failed Withdrawal End --------------------------------------");
         }
     }
