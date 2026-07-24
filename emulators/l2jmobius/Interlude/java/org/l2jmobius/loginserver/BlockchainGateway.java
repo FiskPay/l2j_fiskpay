@@ -69,10 +69,10 @@ public class BlockchainGateway implements Connector.Interface
     private static Signer _signer;
     
     private final Set<String> _onlineServers = ConcurrentHashMap.newKeySet();
-    private final CompletableFuture<Boolean> _connectionResult = new CompletableFuture<>();
+    private final CompletableFuture<Boolean> _initialSignInResult = new CompletableFuture<>();
     private final AtomicBoolean _scheduledServerUpdate = new AtomicBoolean(false);
     
-    private boolean _signedIn = false;
+    private volatile boolean _signedIn = false;
     
     private Connector _connector;
     
@@ -170,28 +170,34 @@ public class BlockchainGateway implements Connector.Interface
             }
             else if (responseObject.has("error"))
             {
+                _signedIn = false;
+
                 LOGGER.warning(getClass().getSimpleName() + ": " + responseObject.getString("error"));
             }
             else
             {
+                _signedIn = false;
+
                 LOGGER.warning(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
             }
             
-            if (!_connectionResult.isDone())
+            if (!_initialSignInResult.isDone())
             {
-                _connectionResult.complete(_signedIn);
+                _initialSignInResult.complete(_signedIn);
             }
             
         }).exceptionally((e) ->
         {
+            _signedIn = false;
+
             LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
             LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
             
-            if (!_connectionResult.isDone())
+            if (!_initialSignInResult.isDone())
             {
-                _connectionResult.complete(false);
+                _initialSignInResult.complete(false);
             }
-            
+
             return null;
         });
     }
@@ -260,7 +266,7 @@ public class BlockchainGateway implements Connector.Interface
     {
         if (!Pattern.matches("^[1-9][0-9]*$", REWARD_ID))
         {
-            _connectionResult.complete(false);
+            _initialSignInResult.complete(false);
             
             LOGGER.warning(getClass().getSimpleName() + ": Invalid blockchain reward item ID");
             
@@ -268,7 +274,7 @@ public class BlockchainGateway implements Connector.Interface
         }
         if (!Pattern.matches("^(1|10|100|1000)$", CONVERSION_RATE))
         {
-            _connectionResult.complete(false);
+            _initialSignInResult.complete(false);
             
             LOGGER.warning(getClass().getSimpleName() + ": Invalid blockchain conversion rate");
             
@@ -276,7 +282,7 @@ public class BlockchainGateway implements Connector.Interface
         }
         
         LOGGER.info(getClass().getSimpleName() + ": Loading Signer...");
-        
+
         try
         {
             _signer = new Signer(SIGNER_FILE, PASSWORD, CHAIN_ID, SYMBOL);
@@ -285,7 +291,7 @@ public class BlockchainGateway implements Connector.Interface
         }
         catch (Exception e)
         {
-            _connectionResult.complete(false);
+            _initialSignInResult.complete(false);
             
             LOGGER.warning(getClass().getSimpleName() + ": Signer could not be loaded");
             LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
@@ -294,39 +300,41 @@ public class BlockchainGateway implements Connector.Interface
         }
         catch (OutOfMemoryError e)
         {
-            _connectionResult.complete(false);
+            _initialSignInResult.complete(false);
             
             LOGGER.warning(getClass().getSimpleName() + ": Signer could not be decrypted because the JVM heap is too small");
             LOGGER.warning(getClass().getSimpleName() + ": Increase the LoginServer Java heap size and try again");
             
             return;
         }
-        
+
         LOGGER.info(getClass().getSimpleName() + ": Connecting to service...");
-        
-        _connector = new Connector(this);
-        
-        ThreadPool.scheduleAtFixedRate(() ->
-        {
-            for (String srvId : _onlineServers)
-            {
-                updateGameServerBalanceToDB(srvId);
-            }
-        }, 0, 150000);
-        
-        ThreadPool.scheduleAtFixedRate(() ->
-        {
-            for (String srvId : _onlineServers)
-            {
-                refundExpiredWithdrawals(srvId);
-            }
-        }, 75000, 150000);
-        
-        _connectionResult.completeOnTimeout(false, 10, TimeUnit.SECONDS);
+
+        _connector = new Connector(this);        
+        _initialSignInResult.completeOnTimeout(false, 10, TimeUnit.SECONDS);
         
         try
         {
-            _connectionResult.get();
+            final boolean signedIn = _initialSignInResult.get();
+
+            if(signedIn)
+            {
+                ThreadPool.scheduleAtFixedRate(() ->
+                {
+                    for (String srvId : _onlineServers)
+                    {
+                        updateGameServerBalanceToDB(srvId);
+                    }
+                }, 0, 150000);
+                
+                ThreadPool.scheduleAtFixedRate(() ->
+                {
+                    for (String srvId : _onlineServers)
+                    {
+                        refundExpiredWithdrawals(srvId);
+                    }
+                }, 75000, 150000);
+            }
         }
         catch (Exception e)
         {
