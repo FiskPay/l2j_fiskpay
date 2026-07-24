@@ -72,7 +72,7 @@ public class BlockchainGateway implements Connector.Interface
     private final CompletableFuture<Boolean> _initialSignInResult = new CompletableFuture<>();
     private final AtomicBoolean _scheduledServerUpdate = new AtomicBoolean(false);
     
-    private volatile boolean _signedIn = false;
+    private boolean _canSignIn = false;
     
     private Connector _connector;
     
@@ -152,6 +152,10 @@ public class BlockchainGateway implements Connector.Interface
                 cb.resolve(new JSONObject().put("ok", false).put("error", "Request object has an illegal id value"));
             }
         }
+        else
+        {
+            cb.resolve(new JSONObject().put("ok", false).put("error", "Invalid request object"));
+        }
     }
     
     @Override
@@ -162,34 +166,30 @@ public class BlockchainGateway implements Connector.Interface
         
         _connector.login(SYMBOL, WALLET, PASSWORD, _signer.getSignerAddress(), CONVERSION_RATE, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
+            boolean canSignIn = false;
+
             if (responseObject.optBoolean("ok", false))
             {
-                _signedIn = true;
+                canSignIn = true;
 
                 LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
             }
             else if (responseObject.has("error"))
             {
-                _signedIn = false;
-
                 LOGGER.warning(getClass().getSimpleName() + ": " + responseObject.getString("error"));
             }
             else
             {
-                _signedIn = false;
-                
                 LOGGER.warning(getClass().getSimpleName() + ": Maybe completeExceptionally triggered in Connector.java? ");
             }
             
             if (!_initialSignInResult.isDone())
             {
-                _initialSignInResult.complete(_signedIn);
+                _initialSignInResult.complete(canSignIn);
             }
             
         }).exceptionally((e) ->
         {
-            _signedIn = false;
-
             LOGGER.warning(getClass().getSimpleName() + ": Error during sign in");
             LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
             
@@ -204,9 +204,7 @@ public class BlockchainGateway implements Connector.Interface
     
     @Override
     public void onDisconnect()
-    {
-        _signedIn = false;
-        
+    {        
         LOGGER.warning(getClass().getSimpleName() + ": Service temporary unavailable");
     }
     
@@ -252,9 +250,9 @@ public class BlockchainGateway implements Connector.Interface
         }
     }
     
-    public boolean isSignedIn()
+    public boolean canSignIn()
     {
-        return _signedIn;
+        return _canSignIn;
     }
     
     public static BlockchainGateway getInstance()
@@ -315,9 +313,9 @@ public class BlockchainGateway implements Connector.Interface
         
         try
         {
-            final boolean signedIn = _initialSignInResult.get();
-            
-            if(signedIn)
+            _canSignIn = _initialSignInResult.get();
+
+            if(_canSignIn)
             {
                 ThreadPool.scheduleAtFixedRate(() ->
                 {
