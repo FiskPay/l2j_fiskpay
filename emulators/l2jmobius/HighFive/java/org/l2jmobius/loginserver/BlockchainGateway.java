@@ -215,38 +215,26 @@ public class BlockchainGateway implements Connector.Interface
         LOGGER.warning(getClass().getSimpleName() + ": " + e.getMessage());
     }
     
-    public void renewServers(int serverId, boolean isConnected)
+    public void addServer(int serverId)
     {
-        renewServers(Integer.toString(serverId), isConnected);
-    }
-    
-    public void renewServers(String srvId, boolean isConnected)
-    {
-        if (isConnected && !_onlineServers.contains(srvId))
+        final String srvId = Integer.toString(serverId);
+
+        if (!_onlineServers.contains(srvId))
         {
             _onlineServers.add(srvId);
             setConfig(srvId);
+            renewServers();
         }
-        else if (!isConnected && _onlineServers.contains(srvId))
+    }
+
+    public void removeServer(int serverId)
+    {
+        final String srvId = Integer.toString(serverId);
+
+        if (_onlineServers.contains(srvId))
         {
             _onlineServers.remove(srvId);
-        }
-        
-        if (_connector == null)
-        {
-            return;
-        }
-        
-        // If a server update has NOT already been scheduled, lock and schedule an update
-        if (_scheduledServerUpdate.compareAndSet(false, true))
-        {
-            ThreadPool.schedule(() ->
-            {
-                // Send updated server list
-                _connector.renewServers(new JSONArray(_onlineServers));
-                // Reset the flag to allow future updates to be scheduled
-                _scheduledServerUpdate.set(false);
-            }, 5000);
+            renewServers();
         }
     }
     
@@ -351,6 +339,26 @@ public class BlockchainGateway implements Connector.Interface
         return getServerName(Integer.parseInt(srvId));
     }
     
+    private void renewServers()
+    {       
+        if (_connector == null)
+        {
+            return;
+        }
+        
+        // If a server update has NOT already been scheduled, lock and schedule an update
+        if (_scheduledServerUpdate.compareAndSet(false, true))
+        {
+            ThreadPool.schedule(() ->
+            {
+                // Send updated server list
+                _connector.renewServers(new JSONArray(_onlineServers));
+                // Reset the flag to allow future updates to be scheduled
+                _scheduledServerUpdate.set(false);
+            }, 5000);
+        }
+    }
+
     private static String getServerName(int serverId)
     {
         final GameServerTable gsTable = GameServerTable.getInstance();
