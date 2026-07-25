@@ -36,7 +36,6 @@ import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Base64;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,8 +62,11 @@ public class BlockchainGateway implements Connector.Interface
     private static final String SIGNER_FILE = "./config/signer";
     
     private static final long CHAIN_ID = 137L;
+    private static final long ONE_TIME_PASSWORD_TTL_MS = 60000L;
+    private static final Pattern ONE_TIME_PASSWORD_PATTERN = Pattern.compile("^[A-Za-z0-9]{6}$");
     
     private static final AtomicInteger _counter = new AtomicInteger(0);
+    private static final ConcurrentHashMap<String, OtpEntry> _oneTimePasswords = new ConcurrentHashMap<>();
     
     private static Signer _signer;
     
@@ -75,6 +77,24 @@ public class BlockchainGateway implements Connector.Interface
     private boolean _canSignIn = false;
     
     private Connector _connector;
+    
+    public void storeOneTimePassword(String username, String oneTimePassword)
+    {
+        if ((username == null) || username.isBlank() || (oneTimePassword == null) || !ONE_TIME_PASSWORD_PATTERN.matcher(oneTimePassword).matches())
+        {
+            return;
+        }
+
+        final OtpEntry entry = new OtpEntry(hashOneTimePassword(oneTimePassword), System.currentTimeMillis() + ONE_TIME_PASSWORD_TTL_MS);
+
+        _oneTimePasswords.put(username, entry);
+
+        ThreadPool.schedule(() ->
+        {
+            _oneTimePasswords.remove(username, entry); // Avoid removing a newer OTP created for the same account.
+        }, ONE_TIME_PASSWORD_TTL_MS);
+    }
+
     
     @Override
     public void onLogDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
@@ -406,18 +426,18 @@ public class BlockchainGateway implements Connector.Interface
             case "linkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {
                 final String username = data.getString("username");
-                final String password = data.getString("password");
+                final String oneTimePassword = data.getString("oneTimePassword");
                 final String walletAddress = data.getString("walletAddress");
                 
-                return linkAccount(username, password, walletAddress); // Links the account to the wallet address
+                return linkAccount(username, oneTimePassword, walletAddress); // Links the account to the wallet address
             }
             case "unlinkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {
                 final String username = data.getString("username");
-                final String password = data.getString("password");
+                final String oneTimePassword = data.getString("oneTimePassword");
                 final String walletAddress = data.getString("walletAddress");
                 
-                return unlinkAccount(username, password, walletAddress); // Unlinks the account from the wallet address
+                return unlinkAccount(username, oneTimePassword, walletAddress); // Unlinks the account from the wallet address
             }
             default:
             {
@@ -641,17 +661,13 @@ public class BlockchainGateway implements Connector.Interface
         }
     }
     
-    private static JSONObject linkAccount(String username, String password, String walletAddress)
+    private static JSONObject linkAccount(String username, String oneTimePassword, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection();)
         {
-            final byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
-            final String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
-            
-            String databasePassword = "";
             String databaseWallet = "";
             
-            try (PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
             {
                 ps.setString(1, username);
                 
@@ -659,20 +675,19 @@ public class BlockchainGateway implements Connector.Interface
                 {
                     if (rs.next())
                     {
-                        databasePassword = rs.getString("password");
                         databaseWallet = rs.getString("wallet_address");
                     }
                 }
             }
             
-            if (!databasePassword.equals(inputPassword))
-            {
-                return new JSONObject().put("ok", false).put("error", "Username - password mismatch");
-            }
-            
             if (!databaseWallet.equals("not linked"))
             {
                 return new JSONObject().put("ok", false).put("error", "Account " + username + " already linked to an Ethereum address");
+            }
+            
+            if (!consumeOneTimePassword(username, oneTimePassword))
+            {
+                return new JSONObject().put("ok", false).put("error", "Invalid or expired one-time password");
             }
             
             try (PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
@@ -704,17 +719,13 @@ public class BlockchainGateway implements Connector.Interface
         }
     }
     
-    private static JSONObject unlinkAccount(String username, String password, String walletAddress)
+    private static JSONObject unlinkAccount(String username, String oneTimePassword, String walletAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
-            final byte[] rawPassword = MessageDigest.getInstance("SHA").digest(password.getBytes(StandardCharsets.UTF_8));
-            final String inputPassword = Base64.getEncoder().encodeToString(rawPassword);
-            
-            String databasePassword = "";
             String databaseWallet = "";
             
-            try (PreparedStatement ps = con.prepareStatement("SELECT password, wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
+            try (PreparedStatement ps = con.prepareStatement("SELECT wallet_address FROM accounts WHERE login = ? LIMIT 1;"))
             {
                 ps.setString(1, username);
                 
@@ -722,24 +733,23 @@ public class BlockchainGateway implements Connector.Interface
                 {
                     if (rs.next())
                     {
-                        databasePassword = rs.getString("password");
                         databaseWallet = rs.getString("wallet_address");
                     }
                     else
                     {
-                        return new JSONObject().put("ok", false).put("error", "Username - password mismatch");
+                        return new JSONObject().put("ok", false).put("error", "Account " + username + " not linked to your Ethereum address");
                     }
                 }
-            }
-            
-            if (!databasePassword.equals(inputPassword))
-            {
-                return new JSONObject().put("ok", false).put("error", "Username - password mismatch");
             }
             
             if (!databaseWallet.equals(walletAddress))
             {
                 return new JSONObject().put("ok", false).put("error", "Account " + username + " not linked to your Ethereum address");
+            }
+            
+            if (!consumeOneTimePassword(username, oneTimePassword))
+            {
+                return new JSONObject().put("ok", false).put("error", "Invalid or expired one-time password");
             }
             
             try (PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
@@ -1095,6 +1105,47 @@ public class BlockchainGateway implements Connector.Interface
     {
         return _counter.updateAndGet((value) -> (value == 1000000) ? 0 : value + 1);
     }
+
+    private static boolean consumeOneTimePassword(String username, String oneTimePassword)
+    {
+        if ((username == null) || username.isBlank() || (oneTimePassword == null) || !ONE_TIME_PASSWORD_PATTERN.matcher(oneTimePassword).matches())
+        {
+            return false;
+        }
+
+        final OtpEntry entry = _oneTimePasswords.get(username);
+
+        if (entry == null)
+        {
+            return false;
+        }
+
+        if (System.currentTimeMillis() > entry.expiresAt)
+        {
+            _oneTimePasswords.remove(username, entry);
+            return false;
+        }
+
+        if (!MessageDigest.isEqual(hashOneTimePassword(oneTimePassword), entry.hash))
+        {
+            return false;
+        }
+
+        return _oneTimePasswords.remove(username, entry); // Consume only after a successful match.
+    }
+
+    private static byte[] hashOneTimePassword(String oneTimePassword)
+    {
+        try
+        {
+            return MessageDigest.getInstance("SHA-256").digest(oneTimePassword.getBytes(StandardCharsets.UTF_8));
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("Could not hash one-time password", e);
+        }
+    }
+
     
     private static CompletableFuture<JSONObject> sendRequestToGS(String srvId, String subject, JSONArray info)
     {
@@ -1159,5 +1210,17 @@ public class BlockchainGateway implements Connector.Interface
         // First will happen this part of the code (trigger) - END
         
         return future.completeOnTimeout(new JSONObject().put("ok", false).put("error", "Request to Game Server " + srvId + " with subject " + subject + " timed out"), 10, TimeUnit.SECONDS);
+    }
+
+    private static final class OtpEntry
+    {
+        private final byte[] hash;
+        private final long expiresAt;
+
+        private OtpEntry(byte[] hash, long expiresAt)
+        {
+            this.hash = hash;
+            this.expiresAt = expiresAt;
+        }
     }
 }

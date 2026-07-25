@@ -99,6 +99,9 @@ https://l2.fiskpay.com/YOUR_ETHEREUM_ADDRESS_HERE/
 
 Replace YOUR_ETHEREUM_ADDRESS_HERE with your actual Ethereum wallet address.
 
+Players can use `.crypto` in game to open the FiskPay panel. When linking or unlinking a wallet, players should use `.otp` in game and enter the displayed 6-character one-time password in the panel. The code is valid for 1 minute.
+
+
 ## In-game Preview
 
 <div align="center"><img width="828" height="477" alt="FiskPay in-game preview" src="https://github.com/user-attachments/assets/9f449c29-1b1d-473e-9b74-8e5ac455251c" /></div>
@@ -113,4 +116,3 @@ How the service is installed, configured, modified, operated, and secured is the
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
