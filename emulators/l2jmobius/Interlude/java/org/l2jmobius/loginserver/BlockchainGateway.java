@@ -59,7 +59,7 @@ public class BlockchainGateway implements Connector.Interface
     private static final String PASSWORD = BlockchainConfig.PASSWORD;
     private static final String REWARD_ID = BlockchainConfig.REWARD_ID;
     private static final String CONVERSION_RATE = BlockchainConfig.CONVERSION_RATE;
-    private static final String SIGNER_FILE = "./config/signer";
+    private static final String SIGNER_FILE = "./config/signer.json";
     
     private static final long CHAIN_ID = 137L;
     private static final long ONE_TIME_PASSWORD_TTL_MS = 60000L;

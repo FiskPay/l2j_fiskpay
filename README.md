@@ -62,7 +62,7 @@ Register your server at:
 
 [https://l2.fiskpay.com/](https://l2.fiskpay.com/)
 
-To register, connect your Web3 wallet and enter your desired Login Server password and remote IPv4 address. Registration creates an encrypted signer file locally in your browser. Download the file, keep its filename as `signer`, and place it in your Login Server `config` folder.
+To register, connect your Web3 wallet and enter your desired Login Server password and remote IPv4 address. Registration creates an encrypted signer file locally in your browser. Download the file, keep its filename as `signer.json`, and place it in your Login Server `config` folder.
 
 The signer file is encrypted with the same password you enter during registration. Keep this file private. It is required by the Login Server to sign withdrawal transactions.
 
@@ -85,7 +85,7 @@ Password = YOUR_SUPER_SECRET_PASSWORD_HERE
 
 `ConversionRate` is only for game/UI conversion. The blockchain contract still uses raw service units. Accepted values are `1`, `10`, `100`, and `1000`.
 
-Set `Password` to the same password used during registration. Make sure the downloaded signer file is available at `./config/signer` relative to the Login Server.
+Set `Password` to the same password used during registration. Make sure the downloaded signer file is available at `./config/signer.json` relative to the Login Server.
 
 ### 6. Compile & Launch
 
