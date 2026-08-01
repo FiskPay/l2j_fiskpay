@@ -391,12 +391,12 @@ public class BlockchainEndpoint
             
             if (isDeposit.equals("1"))
             {
-                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "-------------- New Blockchain Deposit --------------"));
+                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "--------------- New Blockchain Deposit --------------"));
                 player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", rewardAmount + " " + _rewardName + " have been deposited."));
             }
             else
             {
-                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "--------------- New Blockchain Refund --------------"));
+                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "---------------- New Blockchain Refund --------------"));
                 player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", rewardAmount + " " + _rewardName + " have been refunded."));
             }
             

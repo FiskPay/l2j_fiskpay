@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
-<project name="FiskPayBlockchainSupport" default="all" basedir=".">
+<project name="FiskPayBlockchainSupport" default="cleanup" basedir=".">
 
     <!-- Directories -->
     <property name="src.dir" value="src" />

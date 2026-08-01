@@ -129,7 +129,7 @@ public class BlockchainEndpoint
     {
         return _rewardName;
     }
-        
+    
     /**
     * Builds and returns the web panel URL for the configured wallet.
     * @return full panel link URL
@@ -403,12 +403,12 @@ public class BlockchainEndpoint
             
             if (isDeposit.equals("1"))
             {
-                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "-------------- New Blockchain Deposit --------------"));
+                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "--------------- New Blockchain Deposit --------------"));
                 player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", rewardAmount + " " + _rewardName + " have been deposited."));
             }
             else
             {
-                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "--------------- New Blockchain Refund --------------"));
+                player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", "---------------- New Blockchain Refund --------------"));
                 player.sendPacket(new CreatureSay(null, ChatType.WHISPER, "Info", rewardAmount + " " + _rewardName + " have been refunded."));
             }
             
@@ -700,7 +700,7 @@ public class BlockchainEndpoint
         {
             return new JSONObject().put("ok", false).put("error", "Blockchain in-game reward (item ID: " + rwdId + ") should be stackable");
         }
-                
+        
         try
         {
             final BufferedImage qrCodeImage = Tools.generateQRCodeImage(wallet);
