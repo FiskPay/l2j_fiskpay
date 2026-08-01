@@ -63,6 +63,7 @@ public class BlockchainGateway implements Connector.Interface
     
     private static final long CHAIN_ID = 137L;
     private static final long ONE_TIME_PASSWORD_TTL_MS = 60000L;
+    private static final int MAX_ONE_TIME_PASSWORD_ATTEMPTS = 5;
     private static final Pattern ONE_TIME_PASSWORD_PATTERN = Pattern.compile("^[A-Za-z0-9]{6}$");
     
     private static final AtomicInteger _counter = new AtomicInteger(0);
@@ -85,13 +86,14 @@ public class BlockchainGateway implements Connector.Interface
             return;
         }
 
+        final String normalizedUsername = username.trim();
         final OtpEntry entry = new OtpEntry(hashOneTimePassword(oneTimePassword), System.currentTimeMillis() + ONE_TIME_PASSWORD_TTL_MS);
-
-        _oneTimePasswords.put(username, entry);
-
+        
+        _oneTimePasswords.put(normalizedUsername, entry);
+        
         ThreadPool.schedule(() ->
         {
-            _oneTimePasswords.remove(username, entry); // Avoid removing a newer OTP created for the same account.
+            _oneTimePasswords.remove(normalizedUsername, entry); // Avoid removing a newer OTP created for the same account.
         }, ONE_TIME_PASSWORD_TTL_MS);
     }
 
@@ -1113,7 +1115,8 @@ public class BlockchainGateway implements Connector.Interface
             return false;
         }
 
-        final OtpEntry entry = _oneTimePasswords.get(username);
+        final String normalizedUsername = username.trim();
+        final OtpEntry entry = _oneTimePasswords.get(normalizedUsername);
 
         if (entry == null)
         {
@@ -1122,16 +1125,21 @@ public class BlockchainGateway implements Connector.Interface
 
         if (System.currentTimeMillis() > entry.expiresAt)
         {
-            _oneTimePasswords.remove(username, entry);
+            _oneTimePasswords.remove(normalizedUsername, entry);
             return false;
         }
 
         if (!MessageDigest.isEqual(hashOneTimePassword(oneTimePassword), entry.hash))
         {
+            if (entry.failedAttempts.incrementAndGet() >= MAX_ONE_TIME_PASSWORD_ATTEMPTS)
+            {
+                _oneTimePasswords.remove(normalizedUsername, entry);
+            }
+            
             return false;
         }
 
-        return _oneTimePasswords.remove(username, entry); // Consume only after a successful match.
+        return _oneTimePasswords.remove(normalizedUsername, entry); // Consume only after a successful match.
     }
 
     private static byte[] hashOneTimePassword(String oneTimePassword)
@@ -1216,7 +1224,8 @@ public class BlockchainGateway implements Connector.Interface
     {
         private final byte[] hash;
         private final long expiresAt;
-
+        private final AtomicInteger failedAttempts = new AtomicInteger(0);
+        
         private OtpEntry(byte[] hash, long expiresAt)
         {
             this.hash = hash;

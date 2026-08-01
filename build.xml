@@ -131,7 +131,7 @@
     <target name="all" depends="gateway-jar,endpoint-jar" />
 
     <!-- Cleanup task -->
-    <target name="cleanup">
+    <target name="cleanup" depends="all">
         <delete dir="${gateway.bin}" />
         <delete dir="${endpoint.bin}" />
     </target>
