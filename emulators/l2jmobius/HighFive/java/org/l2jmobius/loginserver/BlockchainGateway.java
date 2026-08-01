@@ -87,14 +87,13 @@ public class BlockchainGateway implements Connector.Interface
             return;
         }
 
-        final String normalizedUsername = username.trim();
         final OtpEntry entry = new OtpEntry(hashOneTimePassword(oneTimePassword), System.currentTimeMillis() + ONE_TIME_PASSWORD_TTL_MS);
         
-        _oneTimePasswords.put(normalizedUsername, entry);
+        _oneTimePasswords.put(username, entry);
         
         ThreadPool.schedule(() ->
         {
-            _oneTimePasswords.remove(normalizedUsername, entry); // Avoid removing a newer OTP created for the same account.
+            _oneTimePasswords.remove(username, entry); // Avoid removing a newer OTP created for the same account.
         }, ONE_TIME_PASSWORD_TTL_MS);
     }
 
@@ -688,7 +687,9 @@ public class BlockchainGateway implements Connector.Interface
                 return new JSONObject().put("ok", false).put("error", "Account " + username + " already linked to an Ethereum address");
             }
             
-            if (!consumeOneTimePassword(username, oneTimePassword))
+            final OtpEntry oneTimePasswordEntry = getOneTimePasswordEntry(username, oneTimePassword);
+            
+            if (oneTimePasswordEntry == null)
             {
                 return new JSONObject().put("ok", false).put("error", "Invalid or expired one-time password");
             }
@@ -700,6 +701,8 @@ public class BlockchainGateway implements Connector.Interface
                 
                 if (ps.executeUpdate() > 0)
                 {
+                    consumeOneTimePassword(username, oneTimePasswordEntry);
+                    
                     return new JSONObject().put("ok", true);
                 }
                 
@@ -745,12 +748,14 @@ public class BlockchainGateway implements Connector.Interface
                 }
             }
             
-            if (!databaseWallet.equals(walletAddress))
+            if ((databaseWallet == null) || !walletAddress.equalsIgnoreCase(databaseWallet))
             {
                 return new JSONObject().put("ok", false).put("error", "Account " + username + " not linked to your Ethereum address");
             }
             
-            if (!consumeOneTimePassword(username, oneTimePassword))
+            final OtpEntry oneTimePasswordEntry = getOneTimePasswordEntry(username, oneTimePassword);
+            
+            if (oneTimePasswordEntry == null)
             {
                 return new JSONObject().put("ok", false).put("error", "Invalid or expired one-time password");
             }
@@ -762,6 +767,8 @@ public class BlockchainGateway implements Connector.Interface
                 
                 if (ps.executeUpdate() > 0)
                 {
+                    consumeOneTimePassword(username, oneTimePasswordEntry);
+                    
                     return new JSONObject().put("ok", true);
                 }
                 
@@ -1109,38 +1116,48 @@ public class BlockchainGateway implements Connector.Interface
         return _counter.updateAndGet((value) -> (value == 1000000) ? 0 : value + 1);
     }
 
-    private static boolean consumeOneTimePassword(String username, String oneTimePassword)
+    private static OtpEntry getOneTimePasswordEntry(String username, String oneTimePassword)
     {
         if ((username == null) || username.isBlank() || (oneTimePassword == null) || !ONE_TIME_PASSWORD_PATTERN.matcher(oneTimePassword).matches())
         {
-            return false;
+            return null;
         }
 
-        final String normalizedUsername = username.trim();
-        final OtpEntry entry = _oneTimePasswords.get(normalizedUsername);
+        final OtpEntry entry = _oneTimePasswords.get(username);
 
         if (entry == null)
         {
-            return false;
+            return null;
         }
 
         if (System.currentTimeMillis() > entry.expiresAt)
         {
-            _oneTimePasswords.remove(normalizedUsername, entry);
-            return false;
+            _oneTimePasswords.remove(username, entry);
+
+            return null;
         }
 
         if (!MessageDigest.isEqual(hashOneTimePassword(oneTimePassword), entry.hash))
         {
             if (entry.failedAttempts.incrementAndGet() >= MAX_ONE_TIME_PASSWORD_ATTEMPTS)
             {
-                _oneTimePasswords.remove(normalizedUsername, entry);
+                _oneTimePasswords.remove(username, entry);
             }
             
-            return false;
+            return null;
         }
 
-        return _oneTimePasswords.remove(normalizedUsername, entry); // Consume only after a successful match.
+        return entry;
+    }
+    
+    private static void consumeOneTimePassword(String username, OtpEntry entry)
+    {
+        if ((username == null) || username.isBlank() || (entry == null))
+        {
+            return;
+        }
+        
+        _oneTimePasswords.remove(username, entry);
     }
 
     private static byte[] hashOneTimePassword(String oneTimePassword)
