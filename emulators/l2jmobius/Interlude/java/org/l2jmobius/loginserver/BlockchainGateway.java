@@ -85,7 +85,7 @@ public class BlockchainGateway implements Connector.Interface
         {
             return;
         }
-
+        
         final OtpEntry entry = new OtpEntry(hashOneTimePassword(oneTimePassword), System.currentTimeMillis() + ONE_TIME_PASSWORD_TTL_MS);
         
         _oneTimePasswords.put(username, entry);
@@ -95,7 +95,6 @@ public class BlockchainGateway implements Connector.Interface
             _oneTimePasswords.remove(username, entry); // Avoid removing a newer OTP created for the same account.
         }, ONE_TIME_PASSWORD_TTL_MS);
     }
-
     
     @Override
     public void onLogDeposit(String txHash, String from, String symbol, String amount, String srvId, String character)
@@ -149,9 +148,9 @@ public class BlockchainGateway implements Connector.Interface
     @Override
     public void onRequest(JSONObject requestObject, Callback cb)
     {
-        if (requestObject.has("id") && requestObject.get("id") instanceof String && requestObject.has("subject") && requestObject.get("subject") instanceof String && requestObject.has("data") && requestObject.get("data") instanceof JSONObject)
+        if (requestObject.has("serverId") && requestObject.get("serverId") instanceof String && requestObject.has("subject") && requestObject.get("subject") instanceof String && requestObject.has("data") && requestObject.get("data") instanceof JSONObject)
         {
-            final String srvId = requestObject.getString("id");
+            final String srvId = requestObject.getString("serverId");
             
             if ("ls".equals(srvId)) // Request must be handled by the Login Server
             {
@@ -188,11 +187,11 @@ public class BlockchainGateway implements Connector.Interface
         _connector.login(SYMBOL, WALLET, PASSWORD, _signer.getSignerAddress(), CONVERSION_RATE, new JSONArray(_onlineServers)).thenAccept((responseObject) ->
         {
             boolean canSignIn = false;
-
+            
             if (responseObject.optBoolean("ok", false))
             {
                 canSignIn = true;
-
+                
                 LOGGER.info(getClass().getSimpleName() + ": Signed in successfully");
             }
             else if (responseObject.has("error"))
@@ -218,14 +217,14 @@ public class BlockchainGateway implements Connector.Interface
             {
                 _initialSignInResult.complete(false);
             }
-
+            
             return null;
         });
     }
     
     @Override
     public void onDisconnect()
-    {        
+    {
         LOGGER.warning(getClass().getSimpleName() + ": Service temporary unavailable");
     }
     
@@ -239,7 +238,7 @@ public class BlockchainGateway implements Connector.Interface
     public void addServer(int serverId)
     {
         final String srvId = Integer.toString(serverId);
-
+        
         if (!_onlineServers.contains(srvId))
         {
             _onlineServers.add(srvId);
@@ -247,11 +246,11 @@ public class BlockchainGateway implements Connector.Interface
             renewServers();
         }
     }
-
+    
     public void removeServer(int serverId)
     {
         final String srvId = Integer.toString(serverId);
-
+        
         if (_onlineServers.contains(srvId))
         {
             _onlineServers.remove(srvId);
@@ -289,7 +288,7 @@ public class BlockchainGateway implements Connector.Interface
         }
         
         LOGGER.info(getClass().getSimpleName() + ": Loading Signer...");
-
+        
         try
         {
             _signer = new Signer(SIGNER_FILE, PASSWORD, CHAIN_ID, SYMBOL);
@@ -314,17 +313,17 @@ public class BlockchainGateway implements Connector.Interface
             
             return;
         }
-
+        
         LOGGER.info(getClass().getSimpleName() + ": Connecting to service...");
-
-        _connector = new Connector(this);        
+        
+        _connector = new Connector(this);
         _initialSignInResult.completeOnTimeout(false, 10, TimeUnit.SECONDS);
         
         try
         {
             _canSignIn = _initialSignInResult.get();
-
-            if(_canSignIn)
+            
+            if (_canSignIn)
             {
                 ThreadPool.scheduleAtFixedRate(() ->
                 {
@@ -356,7 +355,7 @@ public class BlockchainGateway implements Connector.Interface
     }
     
     private void renewServers()
-    {       
+    {
         if (_connector == null)
         {
             return;
@@ -374,7 +373,7 @@ public class BlockchainGateway implements Connector.Interface
             }, 5000);
         }
     }
-
+    
     private static String getServerName(String srvId)
     {
         return getServerName(Integer.parseInt(srvId));
@@ -401,24 +400,24 @@ public class BlockchainGateway implements Connector.Interface
         {
             case "getAccs":
             {
-                if (!data.has("walletAddress"))
+                if (!data.has("playerAddress"))
                 {
-                    return new JSONObject().put("ok", false).put("error", "walletAddress undefined");
+                    return new JSONObject().put("ok", false).put("error", "playerAddress undefined");
                 }
                 
-                if (!(data.get("walletAddress") instanceof String))
+                if (!(data.get("playerAddress") instanceof String))
                 {
-                    return new JSONObject().put("ok", false).put("error", "walletAddress not a String");
+                    return new JSONObject().put("ok", false).put("error", "playerAddress not a String");
                 }
                 
-                final String walletAddress = data.getString("walletAddress");
+                final String playerAddress = data.getString("playerAddress");
                 
-                if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", walletAddress))
+                if (!Pattern.matches("^0x[a-fA-F0-9]{40}$", playerAddress))
                 {
-                    return new JSONObject().put("ok", false).put("error", "Improper walletAddress");
+                    return new JSONObject().put("ok", false).put("error", "Improper playerAddress");
                 }
                 
-                return getAccounts(walletAddress); // Get wallet accounts from Login Server database
+                return getAccounts(playerAddress); // Get wallet accounts from Login Server database
             }
             case "getClientBal":
             {
@@ -428,17 +427,17 @@ public class BlockchainGateway implements Connector.Interface
             {
                 final String username = data.getString("username");
                 final String oneTimePassword = data.getString("oneTimePassword");
-                final String walletAddress = data.getString("walletAddress");
+                final String playerAddress = data.getString("playerAddress");
                 
-                return linkAccount(username, oneTimePassword, walletAddress); // Links the account to the wallet address
+                return linkAccount(username, oneTimePassword, playerAddress); // Links the account to the wallet address
             }
             case "unlinkAcc": // This subject's requestObject is validated on the FiskPay Service, no checks needed.
             {
                 final String username = data.getString("username");
                 final String oneTimePassword = data.getString("oneTimePassword");
-                final String walletAddress = data.getString("walletAddress");
+                final String playerAddress = data.getString("playerAddress");
                 
-                return unlinkAccount(username, oneTimePassword, walletAddress); // Unlinks the account from the wallet address
+                return unlinkAccount(username, oneTimePassword, playerAddress); // Unlinks the account from the wallet address
             }
             default:
             {
@@ -449,7 +448,7 @@ public class BlockchainGateway implements Connector.Interface
     
     private static CompletableFuture<JSONObject> processGSRequest(JSONObject requestObject)
     {
-        final String srvId = requestObject.getString("id");
+        final String srvId = requestObject.getString("serverId");
         final String subject = requestObject.getString("subject");
         final JSONObject data = requestObject.getJSONObject("data");
         
@@ -487,29 +486,13 @@ public class BlockchainGateway implements Connector.Interface
                 
                 return getCharacterBalance(srvId, character);
             }
-            case "isOffline":
-            {
-                if (!data.has("character"))
-                {
-                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character undefined"));
-                }
-                
-                if (!(data.get("character") instanceof String))
-                {
-                    return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "character not a String"));
-                }
-                
-                final String character = data.getString("character");
-                
-                return isCharacterOffline(srvId, character);
-            }
             case "getGSMode":
             {
                 return getGameServerMode(srvId);
             }
             case "requestWithdraw":
             {
-                final String playerWalletAddress = data.getString("playerWalletAddress");
+                final String playerAddress = data.getString("playerAddress");
                 final String character = data.getString("character");
                 final String refund = data.getString("refund");
                 final String amount = data.getString("amount");
@@ -534,7 +517,7 @@ public class BlockchainGateway implements Connector.Interface
                     
                     final String username = responseObject0.getString("data");
                     
-                    if (!isWalletOwner(username, playerWalletAddress))
+                    if (!isWalletOwner(username, playerAddress))
                     {
                         return CompletableFuture.completedFuture(new JSONObject().put("ok", false).put("error", "Wallet ownership verification failed"));
                     }
@@ -590,7 +573,7 @@ public class BlockchainGateway implements Connector.Interface
         return new JSONObject().put("ok", false).put("error", "logWithdrawToDB in java had an error");
     }
     
-    private static JSONObject getAccounts(String walletAddress)
+    private static JSONObject getAccounts(String playerAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -598,7 +581,7 @@ public class BlockchainGateway implements Connector.Interface
             
             try (PreparedStatement ps = con.prepareStatement("SELECT login FROM accounts WHERE wallet_address = ?;"))
             {
-                ps.setString(1, walletAddress);
+                ps.setString(1, playerAddress);
                 
                 try (ResultSet rs = ps.executeQuery())
                 {
@@ -662,7 +645,7 @@ public class BlockchainGateway implements Connector.Interface
         }
     }
     
-    private static JSONObject linkAccount(String username, String oneTimePassword, String walletAddress)
+    private static JSONObject linkAccount(String username, String oneTimePassword, String playerAddress)
     {
         try (Connection con = DatabaseFactory.getConnection();)
         {
@@ -695,7 +678,7 @@ public class BlockchainGateway implements Connector.Interface
             
             try (PreparedStatement ps = con.prepareStatement("UPDATE accounts SET wallet_address = ? WHERE login = ?;"))
             {
-                ps.setString(1, walletAddress);
+                ps.setString(1, playerAddress);
                 ps.setString(2, username);
                 
                 if (ps.executeUpdate() > 0)
@@ -724,7 +707,7 @@ public class BlockchainGateway implements Connector.Interface
         }
     }
     
-    private static JSONObject unlinkAccount(String username, String oneTimePassword, String walletAddress)
+    private static JSONObject unlinkAccount(String username, String oneTimePassword, String playerAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
@@ -747,7 +730,7 @@ public class BlockchainGateway implements Connector.Interface
                 }
             }
             
-            if ((databaseWallet == null) || !walletAddress.equalsIgnoreCase(databaseWallet))
+            if ((databaseWallet == null) || !playerAddress.equalsIgnoreCase(databaseWallet))
             {
                 return new JSONObject().put("ok", false).put("error", "Account " + username + " not linked to your Ethereum address");
             }
@@ -825,14 +808,14 @@ public class BlockchainGateway implements Connector.Interface
         }
     }
     
-    private static boolean isWalletOwner(String username, String walletAddress)
+    private static boolean isWalletOwner(String username, String playerAddress)
     {
         try (Connection con = DatabaseFactory.getConnection())
         {
             try (PreparedStatement ps = con.prepareStatement("SELECT 1 FROM accounts WHERE login = ? AND wallet_address = ? LIMIT 1;"))
             {
                 ps.setString(1, username);
-                ps.setString(2, walletAddress);
+                ps.setString(2, playerAddress);
                 
                 try (ResultSet rs = ps.executeQuery())
                 {
@@ -1114,28 +1097,28 @@ public class BlockchainGateway implements Connector.Interface
     {
         return _counter.updateAndGet((value) -> (value == 1000000) ? 0 : value + 1);
     }
-
+    
     private static OtpEntry getOneTimePasswordEntry(String username, String oneTimePassword)
     {
         if ((username == null) || username.isBlank() || (oneTimePassword == null) || !ONE_TIME_PASSWORD_PATTERN.matcher(oneTimePassword).matches())
         {
             return null;
         }
-
+        
         final OtpEntry entry = _oneTimePasswords.get(username);
-
+        
         if (entry == null)
         {
             return null;
         }
-
+        
         if (System.currentTimeMillis() > entry.expiresAt)
         {
             _oneTimePasswords.remove(username, entry);
-
+            
             return null;
         }
-
+        
         if (!MessageDigest.isEqual(hashOneTimePassword(oneTimePassword), entry.hash))
         {
             if (entry.failedAttempts.incrementAndGet() >= MAX_ONE_TIME_PASSWORD_ATTEMPTS)
@@ -1145,7 +1128,7 @@ public class BlockchainGateway implements Connector.Interface
             
             return null;
         }
-
+        
         return entry;
     }
     
@@ -1158,7 +1141,7 @@ public class BlockchainGateway implements Connector.Interface
         
         _oneTimePasswords.remove(username, entry);
     }
-
+    
     private static byte[] hashOneTimePassword(String oneTimePassword)
     {
         try
@@ -1170,7 +1153,6 @@ public class BlockchainGateway implements Connector.Interface
             throw new IllegalStateException("Could not hash one-time password", e);
         }
     }
-
     
     private static CompletableFuture<JSONObject> sendRequestToGS(String srvId, String subject, JSONArray info)
     {
@@ -1236,7 +1218,7 @@ public class BlockchainGateway implements Connector.Interface
         
         return future.completeOnTimeout(new JSONObject().put("ok", false).put("error", "Request to Game Server " + srvId + " with subject " + subject + " timed out"), 10, TimeUnit.SECONDS);
     }
-
+    
     private static final class OtpEntry
     {
         private final byte[] hash;

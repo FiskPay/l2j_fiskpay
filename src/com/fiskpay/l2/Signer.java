@@ -117,19 +117,19 @@ public class Signer
                 return new JSONObject().put("ok", false).put("error", "Withdrawal transaction data could not be decoded");
             }
             
-            final String clientWalletAddress = data.getString("clientWalletAddress");
-            final String playerWalletAddress = data.getString("playerWalletAddress");
+            final String clientAddress = data.getString("clientAddress");
+            final String playerAddress = data.getString("playerAddress");
             final BigInteger amount = new BigInteger(data.getString("amount"));
             final BigInteger server = new BigInteger(srvId);
             final String character = data.getString("character");
             final BigInteger refund = new BigInteger(data.getString("refund"));
             
-            if (!((String) decodedParameters.get(0).getValue()).equalsIgnoreCase(clientWalletAddress))
+            if (!((String) decodedParameters.get(0).getValue()).equalsIgnoreCase(clientAddress))
             {
                 return new JSONObject().put("ok", false).put("error", "Withdrawal transaction from address mismatch");
             }
             
-            if (!((String) decodedParameters.get(1).getValue()).equalsIgnoreCase(playerWalletAddress))
+            if (!((String) decodedParameters.get(1).getValue()).equalsIgnoreCase(playerAddress))
             {
                 return new JSONObject().put("ok", false).put("error", "Withdrawal transaction to address mismatch");
             }
