@@ -59,7 +59,7 @@ public class Connector
             socketOptions.reconnectionAttempts = Integer.MAX_VALUE;
             socketOptions.randomizationFactor = 0.5;
             
-            _socket = IO.socket("wss://ds.fiskpay.com:42099", socketOptions);
+            _socket = IO.socket("wss://service.fiskpay.com:42099", socketOptions);
             
             Runtime.getRuntime().addShutdownHook(new Thread(() ->
             {
